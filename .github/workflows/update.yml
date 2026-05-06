@@ -1,0 +1,37 @@
+name: 決算カレンダー自動更新
+
+on:
+  schedule:
+    - cron: '0 21 * * 0'  # 毎週月曜日 6:00 JST（UTC日曜21:00）
+  workflow_dispatch:        # GitHubから手動実行も可能
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pages: write
+      id-token: write
+
+    steps:
+      - name: リポジトリを取得
+        uses: actions/checkout@v4
+
+      - name: Python セットアップ
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 依存パッケージをインストール
+        run: pip install requests beautifulsoup4 lxml pytz
+
+      - name: 決算データ取得・HTML生成
+        run: python3 make_calendar.py --local
+
+      - name: 変更をコミット・プッシュ
+        run: |
+          git config --global user.email "actions@github.com"
+          git config --global user.name "GitHub Actions"
+          git add earnings.html data.js
+          git diff --staged --quiet || git commit -m "Auto-update: $(date +'%Y/%m/%d')"
+          git push
