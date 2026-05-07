@@ -99,6 +99,7 @@ header h1 span{color:#f97316}
 .bj.major{background:#ffedd5;font-weight:700;color:#9a3412;border-left-color:#ea580c}
 .bu.major{background:#dbeafe;font-weight:700;color:#1e40af;border-left-color:#2563eb}
 .bj.dim,.bu.dim{opacity:.12}
+.bcode{color:#9ca3af;font-size:0.55rem;margin-left:3px}
 .btime{color:#9ca3af;font-size:0.57rem;margin-left:3px}
 details.more{margin-top:3px}
 details.more summary{font-size:0.58rem;color:#6b7280;cursor:pointer;padding:2px 5px;border-radius:4px;background:#f3f4f6;list-style:none;font-weight:600}
@@ -237,7 +238,7 @@ function badgeJP(s){
   const t=s.time?`<span class="btime">${s.time}</span>`:'';
   const mc=s.major?'bj major':'bj';
   const tip=`${s.name}（${s.code}）${s.kind} ${s.mcap}`;
-  return `<div class="${mc}" title="${tip}" data-fk="jp:${s.code}">${s.name}${t}</div>`;
+  return `<div class="${mc}" title="${tip}" data-fk="jp:${s.code}">${s.name}<span class="bcode">${s.code}</span>${t}</div>`;
 }
 function badgeUS(s){
   const tl=TL[s.ct]||s.ct||'';
