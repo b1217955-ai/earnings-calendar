@@ -7,39 +7,79 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#0d1117;color:#c9d1d9;font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans",sans-serif;font-size:13px;line-height:1.4}
-header{position:sticky;top:0;z-index:100;background:#161b22;border-bottom:1px solid #30363d;padding:10px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+header{position:sticky;top:0;z-index:100;background:#161b22;border-bottom:1px solid #30363d;padding:10px 20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 header h1{font-size:1.1rem;font-weight:700;color:#f0f6fc;white-space:nowrap}
-.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chips{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .chip{padding:3px 10px;border-radius:20px;font-size:0.72rem;font-weight:600}
 .chip-jp{background:#3d1a1a;color:#fca5a5}.chip-us{background:#1a2a3d;color:#93c5fd}
-.upd{margin-left:auto;color:#6e7681;font-size:0.7rem;white-space:nowrap}
-.tabs{display:flex;border-bottom:1px solid #30363d;padding:0 20px;background:#161b22}
-.tab{padding:8px 18px;cursor:pointer;font-size:0.8rem;color:#6e7681;border-bottom:2px solid transparent;transition:.2s}
+.chip-week{background:#1a2d1a;color:#86efac;font-size:0.68rem}
+.search-wrap{display:flex;align-items:center;margin-left:auto}
+.search-box{background:#21262d;border:1px solid #30363d;border-radius:20px;padding:5px 12px;color:#c9d1d9;font-size:0.78rem;width:160px;outline:none;transition:.2s}
+.search-box:focus{border-color:#58a6ff;width:200px}
+.search-box::placeholder{color:#484f58}
+.upd{color:#6e7681;font-size:0.68rem;white-space:nowrap}
+@media(max-width:600px){
+  header{padding:8px 12px;gap:8px}
+  .search-box{width:110px}.search-box:focus{width:140px}
+  .upd{display:none}
+}
+.tabs{display:flex;border-bottom:1px solid #30363d;padding:0 16px;background:#161b22;overflow-x:auto}
+.tab{padding:8px 14px;cursor:pointer;font-size:0.8rem;color:#6e7681;border-bottom:2px solid transparent;transition:.2s;white-space:nowrap}
 .tab.active{color:#58a6ff;border-bottom-color:#58a6ff;font-weight:600}
-.panel{display:none;padding:20px}.panel.active{display:block}
-.months{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-@media(max-width:900px){.months{grid-template-columns:1fr}}
-.month h3{font-size:0.85rem;font-weight:600;color:#58a6ff;margin-bottom:6px}
+.fav-badge{background:#f59e0b;color:#000;border-radius:10px;padding:0 5px;font-size:0.62rem;margin-left:3px}
+.panel{display:none;padding:16px 20px}.panel.active{display:block}
+
+/* ── 注目決算カード ── */
+.week-section{margin-bottom:18px}
+.week-section h2{font-size:0.82rem;color:#8b949e;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.week-section h2 em{background:#21262d;padding:2px 8px;border-radius:4px;font-size:0.7rem;color:#6e7681;font-style:normal}
+.spotlight{display:flex;gap:8px;flex-wrap:wrap}
+.scard{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px 12px;min-width:120px;max-width:160px;position:relative;cursor:default;transition:.15s}
+.scard:hover{border-color:#58a6ff}
+.sc-date{font-size:0.62rem;color:#6e7681;margin-bottom:3px}
+.sc-name{font-size:0.82rem;font-weight:700;color:#f0f6fc;margin-bottom:1px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.scard.jp .sc-name{color:#fdba74}.scard.us .sc-name{color:#93c5fd}
+.sc-sub{font-size:0.62rem;color:#6e7681;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sc-time{font-size:0.62rem;margin-top:5px}
+.tbmo{background:#1a2d1a;color:#86efac;font-size:0.58rem;padding:1px 5px;border-radius:10px}
+.tamc{background:#1a1a2d;color:#a5b4fc;font-size:0.58rem;padding:1px 5px;border-radius:10px}
+.sfav{position:absolute;top:6px;right:8px;font-size:0.8rem;cursor:pointer;color:#484f58;line-height:1}
+.sfav.on{color:#f59e0b}
+
+/* ── 月ジャンプナビ ── */
+.month-nav{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+.mnbtn{padding:4px 14px;border-radius:20px;font-size:0.75rem;cursor:pointer;border:1px solid #30363d;background:#161b22;color:#8b949e;transition:.15s}
+.mnbtn.active{background:#1a3050;color:#93c5fd;border-color:#3b82f6}
+
+/* ── カレンダー ── */
+.months{display:grid;grid-template-columns:1fr;gap:16px}
+.month h3{font-size:0.85rem;font-weight:600;color:#58a6ff;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+.month h3 .mc{font-size:0.7rem;color:#6e7681;font-weight:400}
 .ghd{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin-bottom:2px}
 .wh{text-align:center;font-size:0.62rem;color:#6e7681;padding:2px}
+.wh.sat{color:#7aa2f7}.wh.sun{color:#f7768e}
 .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
-.day{background:#161b22;border:1px solid #21262d;border-radius:4px;padding:4px 3px;min-height:68px;overflow:hidden}
-.empty{background:transparent;border:none;min-height:68px}
-.day.past{opacity:.3}.day.today{border:2px solid #f0883e;background:#1c1810}.day.has{background:#151d2e}
-.dn{display:block;font-size:0.65rem;color:#8b949e;margin-bottom:2px;font-weight:600}
+.day{background:#161b22;border:1px solid #21262d;border-radius:5px;padding:5px 4px;min-height:100px;overflow:hidden}
+.empty{background:transparent;border:none;min-height:100px}
+.day.past{opacity:.3}.day.today{border:2px solid #f0883e;background:#1c1810}.day.has{background:#131d2e;border-color:#21305a}
+.dn{display:block;font-size:0.68rem;color:#8b949e;margin-bottom:3px;font-weight:600}
 .day.today .dn{color:#f0883e}
-.bj,.bu{font-size:0.58rem;border-radius:2px;padding:1px 3px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;display:block}
+.dn.sat{color:#7aa2f7}.dn.sun{color:#f7768e}
+.bj,.bu{font-size:0.63rem;border-radius:3px;padding:2px 4px;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;display:block;cursor:default}
 .bj{background:#2a1515;color:#fca5a5;border-left:2px solid #ef4444}
 .bu{background:#0f2235;color:#93c5fd;border-left:2px solid #3b82f6}
-.bj.major{background:#3d2020;font-weight:700;color:#fdba74}
-.bu.major{background:#1a3050;font-weight:700;color:#bfdbfe}
+.bj.major{background:#3d2015;font-weight:700;color:#fdba74;border-left-color:#f97316}
+.bu.major{background:#1a3050;font-weight:700;color:#bfdbfe;border-left-color:#60a5fa}
+.bj.dim,.bu.dim{opacity:.15}
 .btime{color:#6b7280;font-size:0.55rem;margin-left:2px}
 details.more{margin-top:2px}
-details.more summary{font-size:0.55rem;color:#6e7681;cursor:pointer;padding:1px 3px;border-radius:2px;background:#1f2937;list-style:none}
+details.more summary{font-size:0.55rem;color:#6e7681;cursor:pointer;padding:1px 4px;border-radius:2px;background:#1f2937;list-style:none}
 .dr{display:flex;gap:4px;padding:1px 0;font-size:0.55rem;border-bottom:1px solid #1f2937}
 .dc2{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#c9d1d9}
 .dt,.dm{color:#6b7280;white-space:nowrap}
-.filter-bar{display:flex;gap:8px;margin-bottom:12px}
+
+/* ── 一覧 ── */
+.filter-bar{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap}
 .fbtn{padding:4px 14px;border-radius:20px;font-size:0.75rem;cursor:pointer;border:1px solid #30363d;background:#161b22;color:#8b949e;transition:.15s}
 .fbtn.on{background:#1a3050;color:#93c5fd;border-color:#3b82f6}
 table{width:100%;border-collapse:collapse}
@@ -47,6 +87,19 @@ th{text-align:left;padding:7px 10px;font-size:0.72rem;color:#6e7681;border-botto
 td{padding:7px 10px;font-size:0.78rem;border-bottom:1px solid #1c2128}
 tr:hover td{background:#161b22}
 .ldc{color:#8b949e;white-space:nowrap;font-size:0.72rem}.ltc{color:#6e7681;font-size:0.7rem}
+tr.mrow{font-weight:600}
+
+/* ── お気に入り ── */
+.fav-list{display:flex;flex-direction:column;gap:8px}
+.fav-item{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:10px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.fi-name{font-size:0.88rem;font-weight:600;color:#f0f6fc}
+.fi-sub{font-size:0.7rem;color:#6e7681;margin-top:2px}
+.fi-right{text-align:right;white-space:nowrap}
+.fi-date{font-size:0.78rem;color:#c9d1d9;font-weight:600}
+.fi-days{font-size:0.68rem;color:#86efac}
+.fi-del{font-size:0.72rem;color:#484f58;cursor:pointer;margin-top:3px}
+.fi-del:hover{color:#ef4444}
+.fav-empty{text-align:center;color:#484f58;padding:40px;font-size:0.85rem}
 </style>
 </head>
 <body>
@@ -55,14 +108,28 @@ tr:hover td{background:#161b22}
   <div class="chips">
     <span class="chip chip-jp" id="cjp"></span>
     <span class="chip chip-us" id="cus"></span>
+    <span class="chip chip-week" id="cweek"></span>
+  </div>
+  <div class="search-wrap">
+    <input class="search-box" type="search" placeholder="🔍 銘柄を検索..." id="searchBox" oninput="filterStocks(this.value)">
   </div>
   <span class="upd" id="upd"></span>
 </header>
 <div class="tabs">
   <div class="tab active" onclick="showTab('cal',this)">📅 カレンダー</div>
   <div class="tab" onclick="showTab('list',this)">📋 一覧（全件）</div>
+  <div class="tab" onclick="showTab('fav',this)">⭐ お気に入り<span class="fav-badge" id="fav-cnt" style="display:none"></span></div>
 </div>
-<div id="cal" class="panel active"><div class="months" id="months"></div></div>
+
+<div id="cal" class="panel active">
+  <div class="week-section">
+    <h2>🔥 今週・来週の主要決算 <em id="spotlight-range"></em></h2>
+    <div class="spotlight" id="spotlight"></div>
+  </div>
+  <div class="month-nav" id="month-nav"></div>
+  <div class="months" id="months"></div>
+</div>
+
 <div id="list" class="panel">
   <div class="filter-bar">
     <button class="fbtn on" onclick="showList('all',this)">すべて</button>
@@ -73,16 +140,31 @@ tr:hover td{background:#161b22}
   <div id="tbl-jp" style="display:none"></div>
   <div id="tbl-us" style="display:none"></div>
 </div>
+
+<div id="fav" class="panel">
+  <div id="fav-list"></div>
+</div>
+
 <script src="data.js"></script>
 <script>
 const TL={BMO:"開場前",AMC:"閉場後",TAS:"取引中"};
 const DAYS=["月","火","水","木","金","土","日"];
+let FAVS=new Set(JSON.parse(localStorage.getItem('ecfavs')||'[]'));
+
+function saveFavs(){localStorage.setItem('ecfavs',JSON.stringify([...FAVS]));updateFavBadge();}
+function favKey(s){return s.code!==undefined?'jp:'+s.code:'us:'+s.ticker;}
+function updateFavBadge(){
+  const n=FAVS.size;
+  const el=document.getElementById('fav-cnt');
+  el.textContent=n; el.style.display=n?'':'none';
+}
 
 function showTab(id,el){
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   el.classList.add('active');
+  if(id==='fav') buildFavList();
 }
 function showList(type,el){
   ['all','jp','us'].forEach(t=>{document.getElementById('tbl-'+t).style.display='none'});
@@ -91,18 +173,34 @@ function showList(type,el){
   el.classList.add('on');
 }
 
-function badge(s){
+function filterStocks(q){
+  q=q.toLowerCase().trim();
+  document.querySelectorAll('.bj,.bu').forEach(el=>{
+    if(!q){el.classList.remove('dim');return;}
+    const t=(el.textContent+el.title).toLowerCase();
+    el.classList.toggle('dim',!t.includes(q));
+  });
+  document.querySelectorAll('#tbl-all tr,#tbl-jp tr,#tbl-us tr').forEach(tr=>{
+    if(tr.querySelector('th')){tr.style.display='';return;}
+    if(!q){tr.style.display='';return;}
+    tr.style.display=tr.textContent.toLowerCase().includes(q)?'':'none';
+  });
+}
+
+function badge(s,dateStr){
+  const k=favKey(s);
+  const isFav=FAVS.has(k);
   if(s.code!==undefined){
     const t=s.time?`<span class="btime">${s.time}</span>`:'';
     const mc=s.major?'bj major':'bj';
     const tip=`${s.name}（${s.code}）${s.kind} ${s.mcap}`;
-    return `<div class="${mc}" title="${tip}">🇯🇵 ${s.name}${t}</div>`;
+    return `<div class="${mc}" title="${tip}" data-fk="${k}">🇯🇵 ${s.name}${t}</div>`;
   } else {
     const tl=TL[s.ct]||s.ct||'';
     const t=tl?`<span class="btime">${tl}</span>`:'';
     const mc=s.major?'bu major':'bu';
     const tip=`${s.name}（${s.ticker}）EPS:${s.eps} ${s.mcap}`;
-    return `<div class="${mc}" title="${tip}">🇺🇸 ${s.ticker}${t}</div>`;
+    return `<div class="${mc}" title="${tip}" data-fk="${k}">🇺🇸 ${s.ticker}${t}</div>`;
   }
 }
 function detailRow(s){
@@ -113,19 +211,22 @@ function detailRow(s){
 }
 
 function buildCell(dateStr,ev){
-  const today=META.today, top=META.top;
+  const top=META.top;
   const jp=(ev&&ev.jp)||[], us=(ev&&ev.us)||[];
-  const isToday=dateStr===today;
-  const isPast=dateStr<today;
+  const isToday=dateStr===META.today;
+  const isPast=dateStr<META.today;
+  const d=new Date(dateStr+'T00:00:00');
+  const dow=d.getDay();
   const day=parseInt(dateStr.slice(8));
+  let dnCls='dn'+(dow===6?' sat':dow===0?' sun':'');
   let cls='day'+(isToday?' today':isPast?' past':'')+(jp.length||us.length?' has':'');
-  let inner=`<span class="dn">${day}</span>`;
-  jp.slice(0,top).forEach(s=>{inner+=badge(s)});
+  let inner=`<span class="${dnCls}">${day}</span>`;
+  jp.slice(0,top).forEach(s=>{inner+=badge(s,dateStr)});
   if(jp.length>top){
     const rows=jp.slice(top).map(detailRow).join('');
     inner+=`<details class="more"><summary>🇯🇵 +${jp.length-top}社</summary>${rows}</details>`;
   }
-  us.slice(0,top).forEach(s=>{inner+=badge(s)});
+  us.slice(0,top).forEach(s=>{inner+=badge(s,dateStr)});
   if(us.length>top){
     const rows=us.slice(top).map(detailRow).join('');
     inner+=`<details class="more"><summary>🇺🇸 +${us.length-top}社</summary>${rows}</details>`;
@@ -136,24 +237,103 @@ function buildCell(dateStr,ev){
 function buildCalendar(){
   const today=new Date(META.today+'T00:00:00');
   const ms=document.getElementById('months');
+  const nav=document.getElementById('month-nav');
+  const monthIds=[];
   for(let mi=0;mi<3;mi++){
     const y=today.getFullYear(), mo=today.getMonth()+mi;
     const d=new Date(y,mo,1);
     const yr=d.getFullYear(), mth=d.getMonth();
     const ndays=new Date(yr,mth+1,0).getDate();
     const fw=(d.getDay()+6)%7;
-    let cells=DAYS.map(d=>`<div class="wh">${d}</div>`).join('');
-    cells=`<div class="ghd">${cells}</div>`;
+    let jpCnt=0,usCnt=0;
+    for(let dn=1;dn<=ndays;dn++){
+      const ds=`${yr}-${String(mth+1).padStart(2,'0')}-${String(dn).padStart(2,'0')}`;
+      const ev=DATA[ds];
+      if(ev){jpCnt+=(ev.jp||[]).length;usCnt+=(ev.us||[]).length;}
+    }
+    const whs=DAYS.map((d,i)=>`<div class="wh${i===5?' sat':i===6?' sun':''}">${d}</div>`).join('');
     let grid='<div class="empty"></div>'.repeat(fw);
     for(let dn=1;dn<=ndays;dn++){
       const ds=`${yr}-${String(mth+1).padStart(2,'0')}-${String(dn).padStart(2,'0')}`;
       grid+=buildCell(ds,DATA[ds]);
     }
+    const mid=`m${yr}${String(mth+1).padStart(2,'0')}`;
+    monthIds.push({id:mid,label:`${yr}年${mth+1}月`});
     const sec=document.createElement('div');
-    sec.className='month';
-    sec.innerHTML=`<h3>${yr}年${mth+1}月</h3>${cells}<div class="grid">${grid}</div>`;
+    sec.className='month'; sec.id=mid;
+    const mcLabel=`<span class="mc">JP ${jpCnt}社 / US ${usCnt}社</span>`;
+    sec.innerHTML=`<h3>${yr}年${mth+1}月 ${mcLabel}</h3><div class="ghd">${whs}</div><div class="grid">${grid}</div>`;
     ms.appendChild(sec);
   }
+  monthIds.forEach((m,i)=>{
+    const b=document.createElement('button');
+    b.className='mnbtn'+(i===0?' active':''); b.textContent=m.label;
+    b.onclick=()=>{
+      document.querySelectorAll('.mnbtn').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      document.getElementById(m.id).scrollIntoView({behavior:'smooth',block:'start'});
+    };
+    nav.appendChild(b);
+  });
+}
+
+function buildSpotlight(){
+  const today=META.today;
+  const d=new Date(today+'T00:00:00');
+  const dow=(d.getDay()+6)%7;
+  const weekStart=new Date(d); weekStart.setDate(d.getDate()-dow);
+  const rangeEnd=new Date(weekStart); rangeEnd.setDate(weekStart.getDate()+13);
+  const fmt=x=>`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;
+  const ws=fmt(weekStart), we=fmt(rangeEnd);
+  const WD=['日','月','火','水','木','金','土'];
+  document.getElementById('spotlight-range').textContent=
+    `${ws.slice(5).replace('-','/')} 〜 ${we.slice(5).replace('-','/')}`;
+  let cards='';
+  Object.keys(DATA).sort().forEach(ds=>{
+    if(ds<today||ds>we) return;
+    const ev=DATA[ds];
+    const dd=new Date(ds+'T00:00:00');
+    const dlabel=`${String(dd.getMonth()+1)}月${String(dd.getDate())}日（${WD[dd.getDay()]}）`;
+    const add=(s,market)=>{
+      if(!s.major) return;
+      const k=favKey(s);
+      const isFav=FAVS.has(k);
+      const fstar=`<span class="sfav${isFav?' on':''}" data-fk="${k}" onclick="toggleFavCard(this)">${isFav?'⭐':'☆'}</span>`;
+      if(market==='jp'){
+        cards+=`<div class="scard jp"><div class="sc-date">${dlabel}</div><div class="sc-name">${s.name}</div><div class="sc-sub">${s.code} · ${s.mcap}</div><div class="sc-time">${s.time?`<span class="tamc">${s.time}</span>`:''}</div>${fstar}</div>`;
+      } else {
+        const tl=TL[s.ct]||s.ct||'';
+        const tb=tl==='開場前'?`<span class="tbmo">${tl}</span>`:tl?`<span class="tamc">${tl}</span>`:'';
+        cards+=`<div class="scard us"><div class="sc-date">${dlabel}</div><div class="sc-name">${s.ticker}</div><div class="sc-sub">${s.name} · ${s.mcap}</div><div class="sc-time">${tb}</div>${fstar}</div>`;
+      }
+    };
+    (ev.jp||[]).forEach(s=>add(s,'jp'));
+    (ev.us||[]).forEach(s=>add(s,'us'));
+  });
+  document.getElementById('spotlight').innerHTML=cards||'<span style="color:#484f58;font-size:0.8rem">主要銘柄の決算はありません</span>';
+}
+
+function toggleFavCard(el){
+  const k=el.dataset.fk;
+  if(FAVS.has(k)){FAVS.delete(k);el.textContent='☆';el.classList.remove('on');}
+  else{FAVS.add(k);el.textContent='⭐';el.classList.add('on');}
+  saveFavs();
+}
+
+function buildWeekChip(){
+  const today=META.today;
+  const d=new Date(today+'T00:00:00');
+  const dow=(d.getDay()+6)%7;
+  const ws=new Date(d); ws.setDate(d.getDate()-dow);
+  const we=new Date(ws); we.setDate(ws.getDate()+4);
+  const fmt=x=>`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;
+  let jp=0,us=0;
+  Object.keys(DATA).forEach(ds=>{
+    if(ds<fmt(ws)||ds>fmt(we)) return;
+    const ev=DATA[ds];
+    jp+=(ev.jp||[]).length; us+=(ev.us||[]).length;
+  });
+  document.getElementById('cweek').textContent=`今週 JP ${jp}社 / US ${us}社`;
 }
 
 function buildList(filter,targetId){
@@ -165,22 +345,63 @@ function buildList(filter,targetId){
     const label=`${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getDate()).padStart(2,'0')}(${['日','月','火','水','木','金','土'][d.getDay()]})`;
     const ev=DATA[ds];
     if(filter!=='us')(ev.jp||[]).forEach(s=>{
-      const mk=s.major?'★ ':'';
-      rows+=`<tr><td class="ldc">${label}</td><td>🇯🇵 ${mk}${s.name}</td><td class="ltc">${s.code}</td><td class="ltc">${s.kind}</td><td class="ltc">${s.time||'—'}</td><td class="ltc">${s.mcap}</td></tr>`;
+      const mk=s.major?'★ ':''; const rc=s.major?' class="mrow"':'';
+      rows+=`<tr${rc}><td class="ldc">${label}</td><td>🇯🇵 ${mk}${s.name}</td><td class="ltc">${s.code}</td><td class="ltc">${s.kind}</td><td class="ltc">${s.time||'—'}</td><td class="ltc">${s.mcap}</td></tr>`;
     });
     if(filter!=='jp')(ev.us||[]).forEach(s=>{
-      const tl=TL[s.ct]||s.ct||'—'; const mk=s.major?'★ ':'';
-      rows+=`<tr><td class="ldc">${label}</td><td>🇺🇸 ${mk}${s.name}</td><td class="ltc">${s.ticker}</td><td class="ltc">Q決算</td><td class="ltc">${tl}</td><td class="ltc">${s.mcap}</td></tr>`;
+      const tl=TL[s.ct]||s.ct||'—'; const mk=s.major?'★ ':''; const rc=s.major?' class="mrow"':'';
+      rows+=`<tr${rc}><td class="ldc">${label}</td><td>🇺🇸 ${mk}${s.name}</td><td class="ltc">${s.ticker}</td><td class="ltc">Q決算</td><td class="ltc">${tl}</td><td class="ltc">${s.mcap}</td></tr>`;
     });
   });
   if(!rows) rows='<tr><td colspan="6" style="text-align:center;color:#6e7681;padding:20px">データなし</td></tr>';
   document.getElementById(targetId).innerHTML=`<table><thead>${th}</thead><tbody>${rows}</tbody></table>`;
 }
 
+function buildFavList(){
+  const WD=['日','月','火','水','木','金','土'];
+  if(!FAVS.size){
+    document.getElementById('fav-list').innerHTML='<div class="fav-empty">⭐ お気に入りはまだありません<br><small style="color:#6e7681;margin-top:8px;display:block">カレンダーや注目カードの☆をクリックして登録できます</small></div>';
+    return;
+  }
+  const items=[];
+  Object.keys(DATA).sort().forEach(ds=>{
+    if(ds<META.today) return;
+    const ev=DATA[ds];
+    const d=new Date(ds+'T00:00:00');
+    const diffDays=Math.round((d-new Date(META.today+'T00:00:00'))/(86400000));
+    const label=`${String(d.getMonth()+1)}月${String(d.getDate())}日（${WD[d.getDay()]}）`;
+    (ev.jp||[]).forEach(s=>{
+      if(FAVS.has('jp:'+s.code)) items.push({label,diffDays,name:`🇯🇵 ${s.name}（${s.code}）`,sub:`${s.kind} · ${s.time||'時間未定'} · ${s.mcap}`,fk:'jp:'+s.code});
+    });
+    (ev.us||[]).forEach(s=>{
+      if(FAVS.has('us:'+s.ticker)) items.push({label,diffDays,name:`🇺🇸 ${s.name}（${s.ticker}）`,sub:`Q決算 · ${TL[s.ct]||s.ct||'時間未定'} · ${s.mcap}`,fk:'us:'+s.ticker});
+    });
+  });
+  if(!items.length){
+    document.getElementById('fav-list').innerHTML='<div class="fav-empty">登録中のお気に入り銘柄の決算は現在の取得期間にありません</div>';
+    return;
+  }
+  const html=items.map(it=>`
+    <div class="fav-item">
+      <div><div class="fi-name">${it.name}</div><div class="fi-sub">${it.sub}</div></div>
+      <div class="fi-right">
+        <div class="fi-date">${it.label}</div>
+        <div class="fi-days">📅 あと${it.diffDays}日</div>
+        <div class="fi-del" onclick="removeFav('${it.fk}')">⭐ 解除</div>
+      </div>
+    </div>`).join('');
+  document.getElementById('fav-list').innerHTML=`<div class="fav-list">${html}</div>`;
+}
+
+function removeFav(k){FAVS.delete(k);saveFavs();buildFavList();}
+
 document.getElementById('cjp').textContent=`🇯🇵 日本株 ${META.total_jp}社`;
 document.getElementById('cus').textContent=`🇺🇸 米国株 ${META.total_us}社`;
 document.getElementById('upd').textContent=`最終更新: ${META.updated}　★=主要銘柄`;
+updateFavBadge();
+buildWeekChip();
 buildCalendar();
+buildSpotlight();
 buildList('all','tbl-all');
 buildList('jp','tbl-jp');
 buildList('us','tbl-us');
