@@ -128,6 +128,8 @@ tr.mrow td:nth-child(2){font-weight:700;color:#1a1a1a}
 .fi-del{font-size:0.7rem;color:#d1d5db;cursor:pointer;margin-top:4px}
 .fi-del:hover{color:#ef4444}
 .fav-empty{text-align:center;color:#9ca3af;padding:48px 20px;font-size:0.88rem;background:#fff;border-radius:10px;border:1.5px dashed #e5e7eb}
+footer{margin-top:40px;padding:20px;border-top:1px solid #e5e7eb;background:#f9fafb;text-align:center;font-size:0.7rem;color:#9ca3af;line-height:1.8}
+footer a{color:#9ca3af;text-decoration:underline}
 </style>
 </head>
 <body>
@@ -194,6 +196,11 @@ tr.mrow td:nth-child(2){font-weight:700;color:#1a1a1a}
   <div style="padding:16px 20px"><div id="fav-list"></div></div>
 </div>
 
+<footer>
+  📊 データ出典：<a href="https://irbank.net" target="_blank">irbank.net</a>（日本株）／ <a href="https://finance.yahoo.com" target="_blank">Yahoo Finance</a>（米国株）<br>
+  本サイトの情報は自動取得であり、正確性・完全性を保証するものではありません。<br>
+  掲載情報は予告なく変更・削除される場合があります。投資判断はご自身の責任で行ってください。
+</footer>
 <script src="data.js"></script>
 <script>
 const TL={BMO:"開場前",AMC:"閉場後",TAS:"取引中"};
