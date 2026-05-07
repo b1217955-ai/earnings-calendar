@@ -2,7 +2,7 @@ name: 決算カレンダー自動更新
 
 on:
   schedule:
-    - cron: '0 21 * * 0'  # 毎週月曜日 6:00 JST（UTC日曜21:00）
+    - cron: '0 21 * * 1-5'  # 平日毎日 6:00 JST（UTC前日21:00）
   workflow_dispatch:        # GitHubから手動実行も可能
 
 jobs:
