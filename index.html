@@ -130,6 +130,60 @@ tr.mrow td:nth-child(2){font-weight:700;color:#1a1a1a}
 .fav-empty{text-align:center;color:#9ca3af;padding:48px 20px;font-size:0.88rem;background:#fff;border-radius:10px;border:1.5px dashed #e5e7eb}
 footer{margin-top:40px;padding:20px;border-top:1px solid #e5e7eb;background:#f9fafb;text-align:center;font-size:0.7rem;color:#9ca3af;line-height:1.8}
 footer a{color:#9ca3af;text-decoration:underline}
+
+/* ── アジェンダビュー（スマホ専用）── */
+.agenda{display:none;flex-direction:column;gap:12px}
+.ag-day{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06)}
+.ag-head{padding:10px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #f3f4f6}
+.ag-head-date{font-size:0.9rem;font-weight:800;color:#1a1a1a}
+.ag-head-date.sat{color:#3b82f6}.ag-head-date.sun{color:#ef4444}
+.ag-cnt{font-size:0.7rem;font-weight:600;color:#9ca3af;background:#f3f4f6;padding:2px 8px;border-radius:10px}
+.ag-item{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;border-bottom:1px solid #f9fafb;font-size:0.82rem}
+.ag-item:last-child{border-bottom:none}
+.ag-item.major-item{background:#fffbf7}
+.ag-name{font-weight:600;color:#1a1a1a;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ag-item.major-item .ag-name{color:#c2410c}
+.ag-item.us-item .ag-name{color:#1d4ed8}
+.ag-item.us-item.major-item .ag-name{color:#1e40af}
+.ag-code{font-size:0.7rem;color:#9ca3af;margin-left:6px;flex-shrink:0}
+.ag-time{font-size:0.72rem;color:#6b7280;font-weight:600;flex-shrink:0;margin-left:8px;white-space:nowrap}
+.ag-more{padding:8px 14px;font-size:0.75rem;color:#9ca3af;text-align:center;cursor:pointer;background:#f9fafb}
+.ag-more:hover{background:#f3f4f6}
+.ag-today .ag-head{background:#fff7ed;border-bottom-color:#fed7aa}
+.ag-today .ag-head-date{color:#f97316}
+
+/* ビュー切替ボタン（スマホのみ表示）*/
+.view-toggle{display:none;gap:6px;margin-bottom:14px}
+.vtbtn{flex:1;padding:8px;border-radius:8px;font-size:0.78rem;font-weight:600;cursor:pointer;border:1.5px solid #e5e7eb;background:#fff;color:#6b7280;text-align:center;transition:.15s}
+.vtbtn.active{background:#f97316;color:#fff;border-color:#f97316}
+.vtbtn.active.us{background:#1d4ed8;border-color:#1d4ed8}
+
+@media(max-width:768px){
+  /* ヘッダー */
+  header{padding:8px 14px;gap:8px}
+  header h1{font-size:1rem}
+  .hchips{gap:4px}
+  .hchip{font-size:0.65rem;padding:2px 8px}
+  .hchip-week{display:none}
+  .search-wrap{width:100%;margin-left:0;order:3;flex-basis:100%}
+  .search-box{width:100%;border-radius:8px}
+  .search-box:focus{width:100%}
+  .upd{display:none}
+  /* タブ */
+  .mtabs{padding:0 10px}
+  .mtab{padding:8px 12px;font-size:0.8rem}
+  .stabs{padding:0 10px}
+  /* パネル */
+  .view{padding:12px 14px}
+  /* カレンダー非表示、アジェンダ表示 */
+  .month-nav{display:none}
+  .months{display:none}
+  .agenda{display:flex}
+  .view-toggle{display:flex}
+  /* 注目カード */
+  .spotlight{gap:8px}
+  .scard{min-width:calc(50% - 4px);max-width:calc(50% - 4px)}
+}
 </style>
 </head>
 <body>
@@ -164,8 +218,13 @@ footer a{color:#9ca3af;text-decoration:underline}
       <div class="sec-head"><div class="sec-num">1</div><span class="sec-title">今週・来週の注目決算</span><span class="sec-sub" id="range-jp"></span></div>
       <div class="spotlight" id="spot-jp"></div>
     </div>
+    <div class="view-toggle" id="vtoggle-jp">
+      <div class="vtbtn active" onclick="switchView('jp','agenda',this)">📋 一覧</div>
+      <div class="vtbtn" onclick="switchView('jp','cal',this)">📅 カレンダー</div>
+    </div>
     <div class="month-nav" id="nav-jp"></div>
     <div class="months" id="months-jp"></div>
+    <div class="agenda" id="agenda-jp"></div>
   </div>
   <div id="view-jp-list" class="view">
     <div id="tbl-jp"></div>
@@ -183,8 +242,13 @@ footer a{color:#9ca3af;text-decoration:underline}
       <div class="sec-head"><div class="sec-num" style="background:#1d4ed8">1</div><span class="sec-title">今週・来週の注目決算</span><span class="sec-sub" id="range-us"></span></div>
       <div class="spotlight" id="spot-us"></div>
     </div>
+    <div class="view-toggle" id="vtoggle-us">
+      <div class="vtbtn active us" onclick="switchView('us','agenda',this)">📋 一覧</div>
+      <div class="vtbtn" onclick="switchView('us','cal',this)">📅 カレンダー</div>
+    </div>
     <div class="month-nav" id="nav-us"></div>
     <div class="months" id="months-us"></div>
+    <div class="agenda" id="agenda-us"></div>
   </div>
   <div id="view-us-list" class="view">
     <div id="tbl-us"></div>
@@ -430,6 +494,98 @@ function buildFavList(){
 }
 function removeFav(k){FAVS.delete(k);saveFavs();buildFavList();}
 
+function buildAgenda(market){
+  const isJP=market==='jp';
+  const today=META.today;
+  const top=META.top;
+  let html='';
+  Object.keys(DATA).sort().forEach(ds=>{
+    if(ds<today) return;
+    const ev=DATA[ds];
+    const stocks=(ev[market]||[]);
+    if(!stocks.length) return;
+    const d=new Date(ds+'T00:00:00');
+    const dow=d.getDay();
+    const isToday=ds===today;
+    const dowLabel=['日','月','火','水','木','金','土'][dow];
+    const dateCls='ag-head-date'+(dow===6?' sat':dow===0?' sun':'');
+    const dayCls='ag-day'+(isToday?' ag-today':'');
+    const label=`${d.getMonth()+1}月${d.getDate()}日（${dowLabel}）`;
+    let items='';
+    stocks.slice(0,top).forEach(s=>{
+      const isMajor=s.major;
+      if(isJP){
+        const t=s.time||'';
+        items+=`<div class="ag-item${isMajor?' major-item':''}">
+          <span class="ag-name">${s.name}</span>
+          <span class="ag-code">${s.code}</span>
+          <span class="ag-time">${t}</span>
+        </div>`;
+      } else {
+        const tl=TL[s.ct]||s.ct||'';
+        items+=`<div class="ag-item us-item${isMajor?' major-item':''}">
+          <span class="ag-name">${s.name}</span>
+          <span class="ag-code">${s.ticker}</span>
+          <span class="ag-time">${tl}</span>
+        </div>`;
+      }
+    });
+    const rest=stocks.length-top;
+    const moreHtml=rest>0?`<div class="ag-more" onclick="this.previousSibling&&expandAgenda(this)">＋${rest}社を表示</div>`:'';
+    let hiddenItems='';
+    if(rest>0){
+      stocks.slice(top).forEach(s=>{
+        if(isJP){
+          hiddenItems+=`<div class="ag-item${s.major?' major-item':''}" style="display:none">
+            <span class="ag-name">${s.name}</span>
+            <span class="ag-code">${s.code}</span>
+            <span class="ag-time">${s.time||''}</span>
+          </div>`;
+        } else {
+          const tl=TL[s.ct]||s.ct||'';
+          hiddenItems+=`<div class="ag-item us-item${s.major?' major-item':''}" style="display:none">
+            <span class="ag-name">${s.name}</span>
+            <span class="ag-code">${s.ticker}</span>
+            <span class="ag-time">${tl}</span>
+          </div>`;
+        }
+      });
+    }
+    html+=`<div class="${dayCls}">
+      <div class="ag-head">
+        <span class="${dateCls}">${label}</span>
+        <span class="ag-cnt">${stocks.length}社</span>
+      </div>
+      ${items}${hiddenItems}${moreHtml}
+    </div>`;
+  });
+  document.getElementById('agenda-'+market).innerHTML=html||'<div style="text-align:center;color:#9ca3af;padding:32px">データなし</div>';
+}
+
+function expandAgenda(btn){
+  const day=btn.closest('.ag-day');
+  day.querySelectorAll('.ag-item[style*="display:none"]').forEach(el=>el.style.display='');
+  btn.remove();
+}
+
+function switchView(market,view,el){
+  const toggle=document.getElementById('vtoggle-'+market);
+  toggle.querySelectorAll('.vtbtn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  const months=document.getElementById('months-'+market);
+  const agenda=document.getElementById('agenda-'+market);
+  const nav=document.getElementById('nav-'+market);
+  if(view==='agenda'){
+    months.style.display='none';
+    if(nav) nav.style.display='none';
+    agenda.style.display='flex';
+  } else {
+    months.style.display='';
+    if(nav) nav.style.display='';
+    agenda.style.display='none';
+  }
+}
+
 // 初期化
 document.getElementById('cjp').textContent=`🇯🇵 日本株 ${META.total_jp}社`;
 document.getElementById('cus').textContent=`🇺🇸 米国株 ${META.total_us}社`;
@@ -442,6 +598,8 @@ buildSpotlight('jp');
 buildSpotlight('us');
 buildList('jp');
 buildList('us');
+buildAgenda('jp');
+buildAgenda('us');
 </script>
 </body>
 </html>
