@@ -184,6 +184,23 @@ footer a{color:#9ca3af;text-decoration:underline}
   .spotlight{gap:8px}
   .scard{min-width:calc(50% - 4px);max-width:calc(50% - 4px)}
 }
+
+/* ── テーブルカレンダー ── */
+.cal-tbl{width:100%;border-collapse:collapse;table-layout:fixed}
+.cal-tbl th{background:#fef9c3;color:#555;font-size:0.78rem;font-weight:700;text-align:center;padding:7px 4px;border:1px solid #e2e8f0;letter-spacing:.5px}
+.sc2{border:1px solid #e2e8f0;padding:6px 7px;vertical-align:top;min-height:85px;background:#fff}
+.sc2.no-data{background:#f9fafb}
+.sc2.empty-cell{background:#f1f5f9;border-color:#e2e8f0;min-height:85px}
+.sc2.today{background:#fff7ed!important;border-color:#fbd38d!important}
+.sc2.past{opacity:.4}
+.dn2{font-size:0.68rem;color:#bbb;font-weight:700;margin-bottom:3px}
+.tg{font-size:0.72rem;line-height:1.6;display:flex;gap:5px}
+.tgt{color:#666;font-weight:700;white-space:nowrap;flex-shrink:0;min-width:2.8em}
+.tgn{color:#1a1a1a}
+.week-cur td.sc2{border-top:2px dashed #e53e3e!important;border-bottom:2px dashed #e53e3e!important}
+.week-cur td.sc2:first-child{border-left:2px dashed #e53e3e!important}
+.week-cur td.sc2:last-child{border-right:2px dashed #e53e3e!important}
+@media(max-width:768px){.cal-tbl th,.tgt{font-size:0.65rem}.tgn{font-size:0.65rem}}
 </style>
 </head>
 <body>
@@ -321,30 +338,24 @@ function badgeUS(s){
 function drJP(s){return`<div class="dr"><span class="dc2">${s.name}</span><span class="dt">${s.time||'—'}</span><span class="dm">${s.mcap}</span></div>`;}
 function drUS(s){const tl=TL[s.ct]||s.ct||'—';return`<div class="dr"><span class="dc2">${s.ticker}</span><span class="dt">${tl}</span><span class="dm">${s.mcap}</span></div>`;}
 
-function buildCell(dateStr,ev,market){
-  const top=META.top;
+function buildTableCell(dateStr,ev,market){
   const stocks=(ev&&ev[market])||[];
   const isToday=dateStr===META.today;
   const isPast=dateStr<META.today;
-  const d=new Date(dateStr+'T00:00:00');
-  const dow=d.getDay();
   const day=parseInt(dateStr.slice(8));
-  const dnCls='dn'+(dow===6?' sat':dow===0?' sun':'');
-  const hasCls=stocks.length?(market==='jp'?' has jp-only':' has us-only'):'';
-  let cls='day'+(isToday?' today':isPast?' past':'')+hasCls;
-  let inner=`<span class="${dnCls}">${day}</span>`;
-  if(market==='jp'){
-    stocks.slice(0,top).forEach(s=>{inner+=badgeJP(s)});
-    if(stocks.length>top){
-      inner+=`<details class="more"><summary>+${stocks.length-top}社</summary>${stocks.slice(top).map(drJP).join('')}</details>`;
-    }
-  } else {
-    stocks.slice(0,top).forEach(s=>{inner+=badgeUS(s)});
-    if(stocks.length>top){
-      inner+=`<details class="more"><summary>+${stocks.length-top}社</summary>${stocks.slice(top).map(drUS).join('')}</details>`;
-    }
-  }
-  return`<div class="${cls}">${inner}</div>`;
+  const show=stocks.slice(0,20);
+  const groups={};
+  show.forEach(s=>{
+    const t=market==='jp'?(s.time||''):(TL[s.ct]||s.ct||'');
+    if(!groups[t])groups[t]=[];
+    groups[t].push(market==='jp'?s.name:s.ticker);
+  });
+  let inner=`<div class="dn2">${day}</div>`;
+  Object.keys(groups).sort((a,b)=>{if(!a)return 1;if(!b)return -1;return a.localeCompare(b);}).forEach(t=>{
+    inner+=`<div class="tg"><span class="tgt">${t||'—'}</span><span class="tgn">${groups[t].join('、')}</span></div>`;
+  });
+  const cls='sc2'+(isToday?' today':isPast?' past':'')+(stocks.length?'':' no-data');
+  return`<td class="${cls}">${inner}</td>`;
 }
 
 function buildCalendar(market){
@@ -358,23 +369,34 @@ function buildCalendar(market){
     const d=new Date(y,mo,1);
     const yr=d.getFullYear(),mth=d.getMonth();
     const ndays=new Date(yr,mth+1,0).getDate();
-    const fw=(d.getDay()+6)%7;
+    const weeks=[];
+    let wk=Array(5).fill(null);
+    for(let dn=1;dn<=ndays;dn++){
+      const ds=`${yr}-${String(mth+1).padStart(2,'0')}-${String(dn).padStart(2,'0')}`;
+      const dow=new Date(ds+'T00:00:00').getDay();
+      if(dow===0||dow===6)continue;
+      const col=dow-1;
+      if(col===0&&wk.some(x=>x)){weeks.push(wk);wk=Array(5).fill(null);}
+      wk[col]=ds;
+    }
+    if(wk.some(x=>x))weeks.push(wk);
+    let rows='';
+    weeks.forEach(wk=>{
+      const isCur=wk.some(ds=>ds===META.today);
+      let cells='';
+      wk.forEach(ds=>{cells+=ds?buildTableCell(ds,DATA[ds],market):'<td class="sc2 empty-cell"></td>';});
+      rows+=`<tr${isCur?' class="week-cur"':''}>${cells}</tr>`;
+    });
     let cnt=0;
     for(let dn=1;dn<=ndays;dn++){
       const ds=`${yr}-${String(mth+1).padStart(2,'0')}-${String(dn).padStart(2,'0')}`;
-      const ev=DATA[ds]; if(ev) cnt+=(ev[market]||[]).length;
-    }
-    const whs=DAYS.map((d,i)=>`<div class="wh${i===5?' sat':i===6?' sun':''}">${d}</div>`).join('');
-    let grid='<div class="empty"></div>'.repeat(fw);
-    for(let dn=1;dn<=ndays;dn++){
-      const ds=`${yr}-${String(mth+1).padStart(2,'0')}-${String(dn).padStart(2,'0')}`;
-      grid+=buildCell(ds,DATA[ds],market);
+      const ev=DATA[ds];if(ev)cnt+=(ev[market]||[]).length;
     }
     const mid=`m${market}${yr}${String(mth+1).padStart(2,'0')}`;
     monthIds.push({id:mid,label:`${yr}年${mth+1}月`});
     const sec=document.createElement('div');
-    sec.className='month'; sec.id=mid;
-    sec.innerHTML=`<h3>${yr}年${mth+1}月<span class="mc">${cnt}社</span></h3><div class="ghd">${whs}</div><div class="grid">${grid}</div>`;
+    sec.className='month';sec.id=mid;
+    sec.innerHTML=`<h3>${yr}年${mth+1}月<span class="mc">${cnt}社</span></h3><table class="cal-tbl"><thead><tr><th>月</th><th>火</th><th>水</th><th>木</th><th>金</th></tr></thead><tbody>${rows}</tbody></table>`;
     ms.appendChild(sec);
   }
   monthIds.forEach((m,i)=>{
