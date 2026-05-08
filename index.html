@@ -361,7 +361,7 @@ function buildTableCell(dateStr,ev,market){
   const hidden=stocks.slice(SHOW,35);
   function sname(s){
     if(market==='jp') return s.name;
-    return JP_US[s.ticker]?`${JP_US[s.ticker]}(${s.ticker})`:s.ticker;
+    return JP_US[s.ticker]?`${s.ticker} ${JP_US[s.ticker]}`:s.ticker;
   }
   function groupByTime(list){
     const g={};
