@@ -200,6 +200,12 @@ footer a{color:#9ca3af;text-decoration:underline}
 .week-cur td.sc2{border-top:2px dashed #e53e3e!important;border-bottom:2px dashed #e53e3e!important}
 .week-cur td.sc2:first-child{border-left:2px dashed #e53e3e!important}
 .week-cur td.sc2:last-child{border-right:2px dashed #e53e3e!important}
+.holiday-cell{background:#f0f0f0!important}
+.holiday-label{font-size:0.72rem;color:#aaa;text-align:center;margin-top:10px;letter-spacing:.5px}
+.tg-more{margin-top:3px}
+.tg-more summary{font-size:0.65rem;color:#aaa;cursor:pointer;list-style:none;padding:1px 3px;display:inline-block}
+.tg-more summary:hover{color:#555}
+.tg-more summary::-webkit-details-marker{display:none}
 @media(max-width:768px){.cal-tbl th,.tgt{font-size:0.65rem}.tgn{font-size:0.65rem}}
 </style>
 </head>
@@ -287,6 +293,9 @@ footer a{color:#9ca3af;text-decoration:underline}
 const TL={BMO:"開場前",AMC:"閉場後",TAS:"取引中"};
 const DAYS=["月","火","水","木","金","土","日"];
 const WD=['日','月','火','水','木','金','土'];
+const JP_HOLIDAYS=new Set(['2026-01-01','2026-01-02','2026-01-12','2026-02-11','2026-02-23','2026-03-20','2026-04-29','2026-05-04','2026-05-05','2026-05-06','2026-07-20','2026-08-11','2026-09-21','2026-09-23','2026-10-13','2026-11-03','2026-11-23','2026-12-31','2027-01-01','2027-01-02','2027-01-11','2027-02-11','2027-02-23']);
+const US_HOLIDAYS=new Set(['2026-01-01','2026-01-19','2026-02-16','2026-04-03','2026-05-25','2026-07-03','2026-09-07','2026-11-26','2026-12-25','2027-01-01','2027-01-18','2027-02-15']);
+const JP_US={'AAPL':'アップル','MSFT':'マイクロソフト','GOOGL':'アルファベット','GOOG':'アルファベット','AMZN':'アマゾン','META':'メタ','TSLA':'テスラ','NVDA':'エヌビディア','JPM':'JPモルガン','V':'ビザ','MA':'マスターカード','UNH':'ユナイテッドヘルス','JNJ':'J&J','XOM':'エクソンモービル','WMT':'ウォルマート','PG':'P&G','BAC':'バンク・オブ・アメリカ','HD':'ホームデポ','CVX':'シェブロン','ABBV':'アッヴィ','MRK':'メルク','KO':'コカ・コーラ','PEP':'ペプシコ','AVGO':'ブロードコム','COST':'コストコ','CRM':'セールスフォース','AMD':'AMD','INTC':'インテル','QCOM':'クアルコム','TXN':'テキサスインスツルメンツ','GS':'ゴールドマン・サックス','MS':'モルガン・スタンレー','C':'シティグループ','WFC':'ウェルズ・ファーゴ','NFLX':'ネットフリックス','ADBE':'アドビ','ORCL':'オラクル','IBM':'IBM','GE':'GE','F':'フォード','GM':'GM','BA':'ボーイング','CAT':'キャタピラー','HON':'ハネウェル','RTX':'レイセオン','LMT':'ロッキード・マーティン','UPS':'UPS','FDX':'フェデックス','DIS':'ディズニー','T':'AT&T','VZ':'ベライゾン','MCD':'マクドナルド','SBUX':'スターバックス','NKE':'ナイキ','AXP':'アメックス','PYPL':'ペイパル','UBER':'ウーバー','SHOP':'ショッピファイ','SNAP':'スナップ','SPOT':'スポティファイ','PLTR':'パランティア','RBLX':'ロブロックス','COIN':'コインベース','ABNB':'エアビーアンドビー','TSM':'TSMC','ASML':'ASML','NVO':'ノボノルディスク','TM':'トヨタ','SONY':'ソニー','HMC':'ホンダ','SMFG':'三井住友FG','MFG':'みずほFG','MTU':'三菱UFJ'};
 let FAVS=new Set(JSON.parse(localStorage.getItem('ecfavs')||'[]'));
 
 function saveFavs(){localStorage.setItem('ecfavs',JSON.stringify([...FAVS]));updateFavBadge();}
@@ -339,21 +348,40 @@ function drJP(s){return`<div class="dr"><span class="dc2">${s.name}</span><span 
 function drUS(s){const tl=TL[s.ct]||s.ct||'—';return`<div class="dr"><span class="dc2">${s.ticker}</span><span class="dt">${tl}</span><span class="dm">${s.mcap}</span></div>`;}
 
 function buildTableCell(dateStr,ev,market){
-  const stocks=(ev&&ev[market])||[];
   const isToday=dateStr===META.today;
   const isPast=dateStr<META.today;
   const day=parseInt(dateStr.slice(8));
-  const show=stocks.slice(0,20);
-  const groups={};
-  show.forEach(s=>{
-    const t=market==='jp'?(s.time||''):(TL[s.ct]||s.ct||'');
-    if(!groups[t])groups[t]=[];
-    groups[t].push(market==='jp'?s.name:s.ticker);
-  });
+  const holidays=market==='jp'?JP_HOLIDAYS:US_HOLIDAYS;
+  if(holidays.has(dateStr)){
+    return`<td class="sc2${isPast?' past':''} holiday-cell"><div class="dn2">${day}</div><div class="holiday-label">休場日</div></td>`;
+  }
+  const stocks=(ev&&ev[market])||[];
+  const SHOW=10;
+  const visible=stocks.slice(0,SHOW);
+  const hidden=stocks.slice(SHOW,35);
+  function sname(s){
+    if(market==='jp') return s.name;
+    return JP_US[s.ticker]?`${JP_US[s.ticker]}(${s.ticker})`:s.ticker;
+  }
+  function groupByTime(list){
+    const g={};
+    list.forEach(s=>{
+      const t=market==='jp'?(s.time||''):(TL[s.ct]||s.ct||'');
+      if(!g[t])g[t]=[];
+      g[t].push(sname(s));
+    });
+    return g;
+  }
+  function renderGroups(g){
+    return Object.keys(g).sort((a,b)=>!a?1:!b?-1:a.localeCompare(b)).map(t=>
+      `<div class="tg"><span class="tgt">${t||'—'}</span><span class="tgn">${g[t].join('、')}</span></div>`
+    ).join('');
+  }
   let inner=`<div class="dn2">${day}</div>`;
-  Object.keys(groups).sort((a,b)=>{if(!a)return 1;if(!b)return -1;return a.localeCompare(b);}).forEach(t=>{
-    inner+=`<div class="tg"><span class="tgt">${t||'—'}</span><span class="tgn">${groups[t].join('、')}</span></div>`;
-  });
+  inner+=renderGroups(groupByTime(visible));
+  if(hidden.length>0){
+    inner+=`<details class="tg-more"><summary>＋${hidden.length}社</summary>${renderGroups(groupByTime(hidden))}</details>`;
+  }
   const cls='sc2'+(isToday?' today':isPast?' past':'')+(stocks.length?'':' no-data');
   return`<td class="${cls}">${inner}</td>`;
 }
