@@ -392,10 +392,11 @@ function buildCalendar(market){
   const ms=document.getElementById('months-'+market);
   const nav=document.getElementById('nav-'+market);
   const isUS=market==='us';
-  const todayDow=today.getDay();
-  let curRef=new Date(today);
-  if(todayDow===6) curRef.setDate(today.getDate()+2);
-  else if(todayDow===0) curRef.setDate(today.getDate()+1);
+  const nowDate=new Date();
+  const nowDow=nowDate.getDay();
+  let curRef=new Date(nowDate.getFullYear(),nowDate.getMonth(),nowDate.getDate());
+  if(nowDow===6) curRef.setDate(curRef.getDate()+2);
+  else if(nowDow===0) curRef.setDate(curRef.getDate()+1);
   const curRefStr=dfmt(curRef);
   const monthIds=[];
   for(let mi=0;mi<3;mi++){
