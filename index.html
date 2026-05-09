@@ -206,6 +206,7 @@ footer a{color:#9ca3af;text-decoration:underline}
 .tg-more summary{font-size:0.65rem;color:#aaa;cursor:pointer;list-style:none;padding:1px 3px;display:inline-block}
 .tg-more summary:hover{color:#555}
 .tg-more summary::-webkit-details-marker{display:none}
+.tgc{color:#bbb;font-size:0.65em;margin-left:2px}
 @media(max-width:768px){.cal-tbl th,.tgt{font-size:0.65rem}.tgn{font-size:0.65rem}}
 </style>
 </head>
@@ -360,7 +361,7 @@ function buildTableCell(dateStr,ev,market){
   const visible=stocks.slice(0,SHOW);
   const hidden=stocks.slice(SHOW,35);
   function sname(s){
-    if(market==='jp') return s.name;
+    if(market==='jp') return `${s.name}<span class="tgc">${s.code}</span>`;
     return JP_US[s.ticker]?`${s.ticker} ${JP_US[s.ticker]}`:s.ticker;
   }
   function groupByTime(list){
@@ -391,6 +392,11 @@ function buildCalendar(market){
   const ms=document.getElementById('months-'+market);
   const nav=document.getElementById('nav-'+market);
   const isUS=market==='us';
+  const todayDow=today.getDay();
+  let curRef=new Date(today);
+  if(todayDow===6) curRef.setDate(today.getDate()+2);
+  else if(todayDow===0) curRef.setDate(today.getDate()+1);
+  const curRefStr=dfmt(curRef);
   const monthIds=[];
   for(let mi=0;mi<3;mi++){
     const y=today.getFullYear(),mo=today.getMonth()+mi;
@@ -410,7 +416,7 @@ function buildCalendar(market){
     if(wk.some(x=>x))weeks.push(wk);
     let rows='';
     weeks.forEach(wk=>{
-      const isCur=wk.some(ds=>ds===META.today);
+      const isCur=wk.some(ds=>ds===curRefStr);
       let cells='';
       wk.forEach(ds=>{cells+=ds?buildTableCell(ds,DATA[ds],market):'<td class="sc2 empty-cell"></td>';});
       rows+=`<tr${isCur?' class="week-cur"':''}>${cells}</tr>`;
