@@ -289,7 +289,7 @@ footer a{color:#9ca3af;text-decoration:underline}
   本サイトの情報は自動取得であり、正確性・完全性を保証するものではありません。<br>
   掲載情報は予告なく変更・削除される場合があります。投資判断はご自身の責任で行ってください。
 </footer>
-<script src="data.js?v=202605102214"></script>
+<script src="data.js?v=202605102225"></script>
 <script>
 const TL={BMO:"開場前",AMC:"閉場後",TAS:"取引中"};
 const DAYS=["月","火","水","木","金","土","日"];
@@ -358,8 +358,14 @@ function buildTableCell(dateStr,ev,market){
   }
   const stocks=(ev&&ev[market])||[];
   const SHOW=10;
-  const visible=stocks.slice(0,SHOW);
-  const hidden=stocks.slice(SHOW,35);
+  const topEntries=stocks.map((s,i)=>({s,i})).sort((a,b)=>{
+    const av=Number(a.s.mv)||0, bv=Number(b.s.mv)||0;
+    if(bv!==av) return bv-av;
+    return a.i-b.i;
+  }).slice(0,SHOW);
+  const topSet=new Set(topEntries.map(x=>x.i));
+  const visible=topEntries.map(x=>x.s);
+  const hidden=stocks.filter((_,i)=>!topSet.has(i));
   function sname(s){
     if(market==='jp') return `${s.name}<span class="tgc">${s.code}</span>`;
     return JP_US[s.ticker]?`${s.ticker} ${JP_US[s.ticker]}`:s.ticker;
