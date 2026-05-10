@@ -289,7 +289,7 @@ footer a{color:#9ca3af;text-decoration:underline}
   本サイトの情報は自動取得であり、正確性・完全性を保証するものではありません。<br>
   掲載情報は予告なく変更・削除される場合があります。投資判断はご自身の責任で行ってください。
 </footer>
-<script src="data.js?v=20260510-2152"></script>
+<script src="data.js?v=202605102214"></script>
 <script>
 const TL={BMO:"開場前",AMC:"閉場後",TAS:"取引中"};
 const DAYS=["月","火","水","木","金","土","日"];
@@ -555,6 +555,31 @@ function buildAgenda(market){
   const isJP=market==='jp';
   const today=META.today;
   const top=META.top;
+  function topByMcap(list){
+    return list.map((s,i)=>({s,i})).sort((a,b)=>{
+      const av=Number(a.s.mv)||0, bv=Number(b.s.mv)||0;
+      if(bv!==av) return bv-av;
+      return a.i-b.i;
+    }).slice(0,top);
+  }
+  function agendaItem(s, extra){
+    const isMajor=s.major;
+    const extraAttrs=extra?' data-extra="1" style="display:none"':'';
+    if(isJP){
+      const t=s.time||'';
+      return `<div class="ag-item${isMajor?' major-item':''}"${extraAttrs}>
+        <span class="ag-name">${s.name}</span>
+        <span class="ag-code">${s.code}</span>
+        <span class="ag-time">${t}</span>
+      </div>`;
+    }
+    const tl=TL[s.ct]||s.ct||'';
+    return `<div class="ag-item us-item${isMajor?' major-item':''}"${extraAttrs}>
+      <span class="ag-name">${s.name}</span>
+      <span class="ag-code">${s.ticker}</span>
+      <span class="ag-time">${tl}</span>
+    </div>`;
+  }
   let html='';
   Object.keys(DATA).sort().forEach(ds=>{
     if(ds<today) return;
@@ -568,46 +593,14 @@ function buildAgenda(market){
     const dateCls='ag-head-date'+(dow===6?' sat':dow===0?' sun':'');
     const dayCls='ag-day'+(isToday?' ag-today':'');
     const label=`${d.getMonth()+1}月${d.getDate()}日（${dowLabel}）`;
-    let items='';
-    stocks.slice(0,top).forEach(s=>{
-      const isMajor=s.major;
-      if(isJP){
-        const t=s.time||'';
-        items+=`<div class="ag-item${isMajor?' major-item':''}">
-          <span class="ag-name">${s.name}</span>
-          <span class="ag-code">${s.code}</span>
-          <span class="ag-time">${t}</span>
-        </div>`;
-      } else {
-        const tl=TL[s.ct]||s.ct||'';
-        items+=`<div class="ag-item us-item${isMajor?' major-item':''}">
-          <span class="ag-name">${s.name}</span>
-          <span class="ag-code">${s.ticker}</span>
-          <span class="ag-time">${tl}</span>
-        </div>`;
-      }
-    });
-    const rest=stocks.length-top;
-    const moreHtml=rest>0?`<div class="ag-more" onclick="this.previousSibling&&expandAgenda(this)">＋${rest}社を表示</div>`:'';
-    let hiddenItems='';
-    if(rest>0){
-      stocks.slice(top).forEach(s=>{
-        if(isJP){
-          hiddenItems+=`<div class="ag-item${s.major?' major-item':''}" style="display:none">
-            <span class="ag-name">${s.name}</span>
-            <span class="ag-code">${s.code}</span>
-            <span class="ag-time">${s.time||''}</span>
-          </div>`;
-        } else {
-          const tl=TL[s.ct]||s.ct||'';
-          hiddenItems+=`<div class="ag-item us-item${s.major?' major-item':''}" style="display:none">
-            <span class="ag-name">${s.name}</span>
-            <span class="ag-code">${s.ticker}</span>
-            <span class="ag-time">${tl}</span>
-          </div>`;
-        }
-      });
-    }
+    const topEntries=topByMcap(stocks);
+    const topSet=new Set(topEntries.map(x=>x.i));
+    const topStocks=topEntries.map(x=>x.s);
+    const restStocks=stocks.filter((_,i)=>!topSet.has(i));
+    const items=topStocks.map(s=>agendaItem(s,false)).join('');
+    const hiddenItems=restStocks.map(s=>agendaItem(s,true)).join('');
+    const rest=restStocks.length;
+    const moreHtml=rest>0?`<div class="ag-more" data-count="${rest}" onclick="toggleAgendaMore(this)">＋${rest}社を表示</div>`:'';
     html+=`<div class="${dayCls}">
       <div class="ag-head">
         <span class="${dateCls}">${label}</span>
@@ -619,10 +612,12 @@ function buildAgenda(market){
   document.getElementById('agenda-'+market).innerHTML=html||'<div style="text-align:center;color:#9ca3af;padding:32px">データなし</div>';
 }
 
-function expandAgenda(btn){
+function toggleAgendaMore(btn){
   const day=btn.closest('.ag-day');
-  day.querySelectorAll('.ag-item[style*="display:none"]').forEach(el=>el.style.display='');
-  btn.remove();
+  const open=btn.dataset.open==='1';
+  day.querySelectorAll('.ag-item[data-extra="1"]').forEach(el=>el.style.display=open?'none':'');
+  btn.dataset.open=open?'0':'1';
+  btn.textContent=open?`＋${btn.dataset.count}社を表示`:'閉じる';
 }
 
 function switchView(market,view,el){
