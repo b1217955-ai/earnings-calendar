@@ -138,15 +138,15 @@ footer a{color:#9ca3af;text-decoration:underline}
 .ag-head-date{font-size:0.9rem;font-weight:800;color:#1a1a1a}
 .ag-head-date.sat{color:#3b82f6}.ag-head-date.sun{color:#ef4444}
 .ag-cnt{font-size:0.7rem;font-weight:600;color:#9ca3af;background:#f3f4f6;padding:2px 8px;border-radius:10px}
-.ag-item{display:flex;align-items:center;justify-content:space-between;padding:9px 14px;border-bottom:1px solid #f9fafb;font-size:0.82rem}
+.ag-item{display:flex;align-items:flex-start;gap:10px;padding:9px 14px;border-bottom:1px solid #f9fafb;font-size:0.82rem}
 .ag-item:last-child{border-bottom:none}
 .ag-item.major-item{background:#fffbf7}
-.ag-name{font-weight:600;color:#1a1a1a;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ag-item.major-item .ag-name{color:#c2410c}
-.ag-item.us-item .ag-name{color:#1d4ed8}
-.ag-item.us-item.major-item .ag-name{color:#1e40af}
-.ag-code{font-size:0.7rem;color:#9ca3af;margin-left:6px;flex-shrink:0}
-.ag-time{font-size:0.72rem;color:#6b7280;font-weight:600;flex-shrink:0;margin-left:8px;white-space:nowrap}
+.ag-time{font-size:0.76rem;color:#6b7280;font-weight:800;flex:0 0 3.2em;white-space:nowrap}
+.ag-names{flex:1;color:#1a1a1a;font-weight:600;line-height:1.55;min-width:0}
+.ag-item.major-item .ag-names{color:#c2410c}
+.ag-item.us-item .ag-names{color:#1d4ed8}
+.ag-item.us-item.major-item .ag-names{color:#1e40af}
+.ag-code{font-size:0.68rem;color:#9ca3af;margin-left:2px}
 .ag-more{padding:8px 14px;font-size:0.75rem;color:#9ca3af;text-align:center;cursor:pointer;background:#f9fafb}
 .ag-more:hover{background:#f3f4f6}
 .ag-today .ag-head{background:#fff7ed;border-bottom-color:#fed7aa}
@@ -289,7 +289,7 @@ footer a{color:#9ca3af;text-decoration:underline}
   本サイトの情報は自動取得であり、正確性・完全性を保証するものではありません。<br>
   掲載情報は予告なく変更・削除される場合があります。投資判断はご自身の責任で行ってください。
 </footer>
-<script src="data.js?v=202605102246"></script>
+<script src="data.js?v=202605112122"></script>
 <script>
 const TL={BMO:"開場前",AMC:"閉場後",TAS:"取引中"};
 const DAYS=["月","火","水","木","金","土","日"];
@@ -568,23 +568,29 @@ function buildAgenda(market){
       return a.i-b.i;
     }).slice(0,top);
   }
-  function agendaItem(s, extra){
-    const isMajor=s.major;
+  function stockLabel(s){
+    if(isJP) return `${s.name}<span class="ag-code">${s.code}</span>`;
+    return `${s.name}<span class="ag-code">${s.ticker}</span>`;
+  }
+  function groupByAgendaTime(list){
+    const groups={};
+    list.forEach(s=>{
+      const t=isJP?(s.time||''):(TL[s.ct]||s.ct||'');
+      if(!groups[t]) groups[t]=[];
+      groups[t].push(s);
+    });
+    return Object.keys(groups).sort((a,b)=>!a?1:!b?-1:a.localeCompare(b)).map(t=>({time:t,stocks:groups[t]}));
+  }
+  function agendaGroups(list, extra){
     const extraAttrs=extra?' data-extra="1" style="display:none"':'';
-    if(isJP){
-      const t=s.time||'';
-      return `<div class="ag-item${isMajor?' major-item':''}"${extraAttrs}>
-        <span class="ag-name">${s.name}</span>
-        <span class="ag-code">${s.code}</span>
-        <span class="ag-time">${t}</span>
+    return groupByAgendaTime(list).map(g=>{
+      const isMajor=g.stocks.some(s=>s.major);
+      const names=g.stocks.map(stockLabel).join('、');
+      return `<div class="ag-item${isJP?'':' us-item'}${isMajor?' major-item':''}"${extraAttrs}>
+        <span class="ag-time">${g.time||'—'}</span>
+        <span class="ag-names">${names}</span>
       </div>`;
-    }
-    const tl=TL[s.ct]||s.ct||'';
-    return `<div class="ag-item us-item${isMajor?' major-item':''}"${extraAttrs}>
-      <span class="ag-name">${s.name}</span>
-      <span class="ag-code">${s.ticker}</span>
-      <span class="ag-time">${tl}</span>
-    </div>`;
+    }).join('');
   }
   let html='';
   Object.keys(DATA).sort().forEach(ds=>{
@@ -603,8 +609,8 @@ function buildAgenda(market){
     const topSet=new Set(topEntries.map(x=>x.i));
     const topStocks=topEntries.map(x=>x.s);
     const restStocks=stocks.filter((_,i)=>!topSet.has(i));
-    const items=topStocks.map(s=>agendaItem(s,false)).join('');
-    const hiddenItems=restStocks.map(s=>agendaItem(s,true)).join('');
+    const items=agendaGroups(topStocks,false);
+    const hiddenItems=agendaGroups(restStocks,true);
     const rest=restStocks.length;
     const moreHtml=rest>0?`<div class="ag-more" data-count="${rest}" onclick="toggleAgendaMore(this)">＋${rest}社を表示</div>`:'';
     html+=`<div class="${dayCls}">
