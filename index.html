@@ -133,6 +133,8 @@ footer a{color:#9ca3af;text-decoration:underline}
 
 /* ── 重要事項 ── */
 .events-wrap{display:flex;flex-direction:column;gap:12px}
+.events-cal{display:grid;grid-template-columns:1fr;gap:20px}
+.event-agenda{display:none}
 .events-empty{text-align:center;color:#9ca3af;padding:48px 20px;font-size:0.88rem;background:#fff;border-radius:10px;border:1.5px dashed #e5e7eb}
 .event-item{display:flex;align-items:flex-start;gap:10px;padding:9px 14px;border-bottom:1px solid #f9fafb;font-size:0.84rem}
 .event-item:last-child{border-bottom:none}
@@ -140,6 +142,8 @@ footer a{color:#9ca3af;text-decoration:underline}
 .event-flag{flex:0 0 1.5em;font-size:1rem;line-height:1.4}
 .event-name{flex:1;color:#1a1a1a;font-weight:700;line-height:1.5;min-width:0}
 .event-country{font-size:0.68rem;color:#9ca3af;margin-left:5px;font-weight:600}
+.evflag{margin-right:3px}
+.evcountry{color:#9ca3af;font-size:0.85em;margin-left:2px}
 
 /* ── アジェンダビュー（スマホ専用）── */
 .agenda{display:none;flex-direction:column;gap:12px}
@@ -189,6 +193,8 @@ footer a{color:#9ca3af;text-decoration:underline}
   .month-nav{display:none}
   .months{display:none}
   .agenda{display:flex}
+  .events-cal{display:none}
+  .event-agenda{display:flex}
   .view-toggle{display:flex}
   /* 注目カード */
   .spotlight{gap:8px}
@@ -300,7 +306,9 @@ footer a{color:#9ca3af;text-decoration:underline}
   <div class="view active">
     <div class="week-section">
       <div class="sec-head"><div class="sec-num">1</div><span class="sec-title">重要事項スケジュール</span><span class="sec-sub" id="range-events"></span></div>
-      <div class="events-wrap" id="events-list"></div>
+      <div class="month-nav" id="nav-events"></div>
+      <div class="events-cal" id="months-events"></div>
+      <div class="events-wrap event-agenda" id="events-list"></div>
     </div>
   </div>
 </div>
@@ -310,7 +318,7 @@ footer a{color:#9ca3af;text-decoration:underline}
   本サイトの情報は自動取得であり、正確性・完全性を保証するものではありません。<br>
   掲載情報は予告なく変更・削除される場合があります。投資判断はご自身の責任で行ってください。
 </footer>
-<script src="data.js?v=202605112206"></script>
+<script src="data.js?v=202605112214"></script>
 <script>
 const TL={BMO:"開場前",AMC:"閉場後",TAS:"取引中"};
 const DAYS=["月","火","水","木","金","土","日"];
@@ -533,13 +541,88 @@ function buildImportantEvents(){
   const today=META.today;
   const dsKeys=Object.keys(DATA).sort().filter(ds=>ds>=today&&((DATA[ds].events||[]).length));
   const list=document.getElementById('events-list');
+  const months=document.getElementById('months-events');
+  const nav=document.getElementById('nav-events');
   const range=document.getElementById('range-events');
+  list.innerHTML='';
+  months.innerHTML='';
+  nav.innerHTML='';
   if(!dsKeys.length){
     range.textContent='日本・米国';
+    months.innerHTML='<div class="events-empty">重要事項データはありません</div>';
     list.innerHTML='<div class="events-empty">重要事項データはありません</div>';
     return;
   }
   range.textContent=`${dsKeys[0].slice(5).replace('-','/')} 〜 ${dsKeys[dsKeys.length-1].slice(5).replace('-','/')} · ${META.total_events||0}件`;
+  function eventName(e){
+    return `<span class="evflag">${e.flag}</span>${e.name}<span class="evcountry">${e.country_name}</span>`;
+  }
+  function groupEvents(list){
+    const g={};
+    list.forEach(e=>{
+      const t=e.time||'';
+      if(!g[t]) g[t]=[];
+      g[t].push(eventName(e));
+    });
+    return Object.keys(g).sort((a,b)=>!a?1:!b?-1:a.localeCompare(b)).map(t=>
+      `<div class="tg"><span class="tgt">${t||'—'}</span><span class="tgn">${g[t].join('、')}</span></div>`
+    ).join('');
+  }
+  function eventCell(ds, yr, mth){
+    const ev=DATA[ds];
+    const items=(ev&&ev.events)||[];
+    const day=parseInt(ds.slice(8));
+    const isToday=ds===META.today;
+    const isPast=ds<META.today;
+    const cls='sc2'+(isToday?' today':isPast?' past':'')+(items.length?'':' no-data');
+    return `<td class="${cls}"><div class="dn2">${day}</div>${groupEvents(items)}</td>`;
+  }
+  const todayDate=new Date(today+'T00:00:00');
+  const monthIds=[];
+  for(let mi=0;mi<3;mi++){
+    const base=new Date(todayDate.getFullYear(),todayDate.getMonth()+mi,1);
+    const yr=base.getFullYear(), mth=base.getMonth();
+    const ndays=new Date(yr,mth+1,0).getDate();
+    const weeks=[];
+    let wk=Array(5).fill(null);
+    for(let dn=1;dn<=ndays;dn++){
+      const ds=`${yr}-${String(mth+1).padStart(2,'0')}-${String(dn).padStart(2,'0')}`;
+      const dow=new Date(ds+'T00:00:00').getDay();
+      if(dow===0||dow===6) continue;
+      const col=dow-1;
+      if(col===0&&wk.some(x=>x)){weeks.push(wk);wk=Array(5).fill(null);}
+      wk[col]=ds;
+    }
+    if(wk.some(x=>x)) weeks.push(wk);
+    let rows='';
+    weeks.forEach(wk=>{
+      let cells='';
+      wk.forEach(ds=>{cells+=ds?eventCell(ds,yr,mth):'<td class="sc2 empty-cell"></td>';});
+      rows+=`<tr>${cells}</tr>`;
+    });
+    let cnt=0;
+    for(let dn=1;dn<=ndays;dn++){
+      const ds=`${yr}-${String(mth+1).padStart(2,'0')}-${String(dn).padStart(2,'0')}`;
+      cnt+=((DATA[ds]||{}).events||[]).length;
+    }
+    const mid=`mevents${yr}${String(mth+1).padStart(2,'0')}`;
+    monthIds.push({id:mid,label:`${yr}年${mth+1}月`});
+    const sec=document.createElement('div');
+    sec.className='month'; sec.id=mid;
+    sec.innerHTML=`<h3>${yr}年${mth+1}月<span class="mc">${cnt}件</span></h3><table class="cal-tbl"><thead><tr><th>月</th><th>火</th><th>水</th><th>木</th><th>金</th></tr></thead><tbody>${rows}</tbody></table>`;
+    months.appendChild(sec);
+  }
+  monthIds.forEach((m,i)=>{
+    const b=document.createElement('button');
+    b.className='mnbtn'+(i===0?' active':'');
+    b.textContent=m.label;
+    b.onclick=()=>{
+      document.querySelectorAll('#nav-events .mnbtn').forEach(x=>x.classList.remove('active'));
+      b.classList.add('active');
+      document.getElementById(m.id).scrollIntoView({behavior:'smooth',block:'start'});
+    };
+    nav.appendChild(b);
+  });
   let html='';
   dsKeys.forEach(ds=>{
     const d=new Date(ds+'T00:00:00');
