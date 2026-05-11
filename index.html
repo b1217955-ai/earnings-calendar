@@ -131,7 +131,7 @@ tr.mrow td:nth-child(2){font-weight:700;color:#1a1a1a}
 footer{margin-top:40px;padding:20px;border-top:1px solid #e5e7eb;background:#f9fafb;text-align:center;font-size:0.7rem;color:#9ca3af;line-height:1.8}
 footer a{color:#9ca3af;text-decoration:underline}
 
-/* ── 重要事項 ── */
+/* ── 経済指標 ── */
 .events-wrap{display:flex;flex-direction:column;gap:12px}
 .events-cal{display:grid;grid-template-columns:1fr;gap:20px}
 .event-agenda{display:none}
@@ -141,9 +141,7 @@ footer a{color:#9ca3af;text-decoration:underline}
 .event-time{font-size:0.76rem;color:#6b7280;font-weight:800;flex:0 0 3.2em;white-space:nowrap}
 .event-flag{flex:0 0 1.5em;font-size:1rem;line-height:1.4}
 .event-name{flex:1;color:#1a1a1a;font-weight:700;line-height:1.5;min-width:0}
-.event-country{font-size:0.68rem;color:#9ca3af;margin-left:5px;font-weight:600}
 .evflag{margin-right:3px}
-.evcountry{color:#9ca3af;font-size:0.85em;margin-left:2px}
 
 /* ── アジェンダビュー（スマホ専用）── */
 .agenda{display:none;flex-direction:column;gap:12px}
@@ -244,7 +242,7 @@ footer a{color:#9ca3af;text-decoration:underline}
 <div class="mtabs">
   <div class="mtab active" onclick="showMarket('jp',this)">🇯🇵 日本株</div>
   <div class="mtab" onclick="showMarket('us',this)">🇺🇸 米国株</div>
-  <div class="mtab" onclick="showMarket('events',this)">📌 重要事項</div>
+  <div class="mtab" onclick="showMarket('events',this)">📈 経済指標</div>
   <div class="mtab" onclick="showMarket('fav',this)">⭐ お気に入り<span class="fav-badge" id="fav-cnt" style="display:none"></span></div>
 </div>
 
@@ -301,11 +299,11 @@ footer a{color:#9ca3af;text-decoration:underline}
   <div style="padding:16px 20px"><div id="fav-list"></div></div>
 </div>
 
-<!-- ── 重要事項パネル ── -->
+<!-- ── 経済指標パネル ── -->
 <div id="mpanel-events" class="mpanel">
   <div class="view active">
     <div class="week-section">
-      <div class="sec-head"><div class="sec-num">1</div><span class="sec-title">重要事項スケジュール</span><span class="sec-sub" id="range-events"></span></div>
+      <div class="sec-head"><div class="sec-num">1</div><span class="sec-title">経済指標カレンダー</span><span class="sec-sub" id="range-events"></span></div>
       <div class="month-nav" id="nav-events"></div>
       <div class="events-cal" id="months-events"></div>
       <div class="events-wrap event-agenda" id="events-list"></div>
@@ -314,11 +312,11 @@ footer a{color:#9ca3af;text-decoration:underline}
 </div>
 
 <footer>
-  📊 データ出典：<a href="https://irbank.net" target="_blank">irbank.net</a>（日本株）／ <a href="https://www.nasdaq.com" target="_blank">Nasdaq</a>（米国株）／ <a href="https://www.sbisec.co.jp" target="_blank">SBI証券</a>（重要事項）<br>
+  📊 データ出典：<a href="https://irbank.net" target="_blank">irbank.net</a>（日本株）／ <a href="https://www.nasdaq.com" target="_blank">Nasdaq</a>（米国株）／ <a href="https://www.sbisec.co.jp" target="_blank">SBI証券</a>（経済指標）<br>
   本サイトの情報は自動取得であり、正確性・完全性を保証するものではありません。<br>
   掲載情報は予告なく変更・削除される場合があります。投資判断はご自身の責任で行ってください。
 </footer>
-<script src="data.js?v=202605112214"></script>
+<script src="data.js?v=202605112224"></script>
 <script>
 const TL={BMO:"開場前",AMC:"閉場後",TAS:"取引中"};
 const DAYS=["月","火","水","木","金","土","日"];
@@ -549,23 +547,22 @@ function buildImportantEvents(){
   nav.innerHTML='';
   if(!dsKeys.length){
     range.textContent='日本・米国';
-    months.innerHTML='<div class="events-empty">重要事項データはありません</div>';
-    list.innerHTML='<div class="events-empty">重要事項データはありません</div>';
+    months.innerHTML='<div class="events-empty">経済指標データはありません</div>';
+    list.innerHTML='<div class="events-empty">経済指標データはありません</div>';
     return;
   }
   range.textContent=`${dsKeys[0].slice(5).replace('-','/')} 〜 ${dsKeys[dsKeys.length-1].slice(5).replace('-','/')} · ${META.total_events||0}件`;
   function eventName(e){
-    return `<span class="evflag">${e.flag}</span>${e.name}<span class="evcountry">${e.country_name}</span>`;
+    return `<span class="evflag">${e.flag}</span>${e.name}`;
   }
   function groupEvents(list){
-    const g={};
-    list.forEach(e=>{
-      const t=e.time||'';
-      if(!g[t]) g[t]=[];
-      g[t].push(eventName(e));
-    });
-    return Object.keys(g).sort((a,b)=>!a?1:!b?-1:a.localeCompare(b)).map(t=>
-      `<div class="tg"><span class="tgt">${t||'—'}</span><span class="tgn">${g[t].join('、')}</span></div>`
+    return [...list].sort((a,b)=>{
+      const av=Number(a.time?.replace(':',''))||9999;
+      const bv=Number(b.time?.replace(':',''))||9999;
+      if(av!==bv) return av-bv;
+      return (a.country||'').localeCompare(b.country||'') || (a.name||'').localeCompare(b.name||'');
+    }).map(e=>
+      `<div class="tg"><span class="tgt">${e.time||'—'}</span><span class="tgn">${eventName(e)}</span></div>`
     ).join('');
   }
   function eventCell(ds, yr, mth){
@@ -635,7 +632,7 @@ function buildImportantEvents(){
       <div class="event-item">
         <span class="event-time">${e.time||'—'}</span>
         <span class="event-flag">${e.flag}</span>
-        <span class="event-name">${e.name}<span class="event-country">${e.country_name}</span></span>
+        <span class="event-name">${e.name}</span>
       </div>`).join('');
     html+=`<div class="${dayCls}">
       <div class="ag-head">
