@@ -131,6 +131,16 @@ tr.mrow td:nth-child(2){font-weight:700;color:#1a1a1a}
 footer{margin-top:40px;padding:20px;border-top:1px solid #e5e7eb;background:#f9fafb;text-align:center;font-size:0.7rem;color:#9ca3af;line-height:1.8}
 footer a{color:#9ca3af;text-decoration:underline}
 
+/* ── 重要事項 ── */
+.events-wrap{display:flex;flex-direction:column;gap:12px}
+.events-empty{text-align:center;color:#9ca3af;padding:48px 20px;font-size:0.88rem;background:#fff;border-radius:10px;border:1.5px dashed #e5e7eb}
+.event-item{display:flex;align-items:flex-start;gap:10px;padding:9px 14px;border-bottom:1px solid #f9fafb;font-size:0.84rem}
+.event-item:last-child{border-bottom:none}
+.event-time{font-size:0.76rem;color:#6b7280;font-weight:800;flex:0 0 3.2em;white-space:nowrap}
+.event-flag{flex:0 0 1.5em;font-size:1rem;line-height:1.4}
+.event-name{flex:1;color:#1a1a1a;font-weight:700;line-height:1.5;min-width:0}
+.event-country{font-size:0.68rem;color:#9ca3af;margin-left:5px;font-weight:600}
+
 /* ── アジェンダビュー（スマホ専用）── */
 .agenda{display:none;flex-direction:column;gap:12px}
 .ag-day{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.06)}
@@ -228,6 +238,7 @@ footer a{color:#9ca3af;text-decoration:underline}
 <div class="mtabs">
   <div class="mtab active" onclick="showMarket('jp',this)">🇯🇵 日本株</div>
   <div class="mtab" onclick="showMarket('us',this)">🇺🇸 米国株</div>
+  <div class="mtab" onclick="showMarket('events',this)">📌 重要事項</div>
   <div class="mtab" onclick="showMarket('fav',this)">⭐ お気に入り<span class="fav-badge" id="fav-cnt" style="display:none"></span></div>
 </div>
 
@@ -284,12 +295,22 @@ footer a{color:#9ca3af;text-decoration:underline}
   <div style="padding:16px 20px"><div id="fav-list"></div></div>
 </div>
 
+<!-- ── 重要事項パネル ── -->
+<div id="mpanel-events" class="mpanel">
+  <div class="view active">
+    <div class="week-section">
+      <div class="sec-head"><div class="sec-num">1</div><span class="sec-title">重要事項スケジュール</span><span class="sec-sub" id="range-events"></span></div>
+      <div class="events-wrap" id="events-list"></div>
+    </div>
+  </div>
+</div>
+
 <footer>
-  📊 データ出典：<a href="https://irbank.net" target="_blank">irbank.net</a>（日本株）／ <a href="https://www.nasdaq.com" target="_blank">Nasdaq</a>（米国株）<br>
+  📊 データ出典：<a href="https://irbank.net" target="_blank">irbank.net</a>（日本株）／ <a href="https://www.nasdaq.com" target="_blank">Nasdaq</a>（米国株）／ <a href="https://tradingeconomics.com" target="_blank">Trading Economics</a>（重要事項）<br>
   本サイトの情報は自動取得であり、正確性・完全性を保証するものではありません。<br>
   掲載情報は予告なく変更・削除される場合があります。投資判断はご自身の責任で行ってください。
 </footer>
-<script src="data.js?v=202605112122"></script>
+<script src="data.js?v=202605112142"></script>
 <script>
 const TL={BMO:"開場前",AMC:"閉場後",TAS:"取引中"};
 const DAYS=["月","火","水","木","金","土","日"];
@@ -329,6 +350,9 @@ function filterStocks(q){
   document.querySelectorAll('#tbl-jp tr,#tbl-us tr').forEach(tr=>{
     if(tr.querySelector('th')){tr.style.display='';return;}
     tr.style.display=(!q||tr.textContent.toLowerCase().includes(q))?'':'none';
+  });
+  document.querySelectorAll('#events-list .ag-day').forEach(day=>{
+    day.style.display=(!q||day.textContent.toLowerCase().includes(q))?'':'none';
   });
 }
 
@@ -505,6 +529,42 @@ function buildWeekChip(){
   document.getElementById('cweek').textContent=`今週 JP ${jp}社 / US ${us}社`;
 }
 
+function buildImportantEvents(){
+  const today=META.today;
+  const dsKeys=Object.keys(DATA).sort().filter(ds=>ds>=today&&((DATA[ds].events||[]).length));
+  const list=document.getElementById('events-list');
+  const range=document.getElementById('range-events');
+  if(!dsKeys.length){
+    range.textContent='日本・米国';
+    list.innerHTML='<div class="events-empty">重要事項データはありません</div>';
+    return;
+  }
+  range.textContent=`${dsKeys[0].slice(5).replace('-','/')} 〜 ${dsKeys[dsKeys.length-1].slice(5).replace('-','/')} · ${META.total_events||0}件`;
+  let html='';
+  dsKeys.forEach(ds=>{
+    const d=new Date(ds+'T00:00:00');
+    const dow=d.getDay();
+    const isToday=ds===today;
+    const label=`${d.getMonth()+1}月${d.getDate()}日（${WD[dow]}）`;
+    const dateCls='ag-head-date'+(dow===6?' sat':dow===0?' sun':'');
+    const dayCls='ag-day'+(isToday?' ag-today':'');
+    const items=(DATA[ds].events||[]).map(e=>`
+      <div class="event-item">
+        <span class="event-time">${e.time||'—'}</span>
+        <span class="event-flag">${e.flag}</span>
+        <span class="event-name">${e.name}<span class="event-country">${e.country_name}</span></span>
+      </div>`).join('');
+    html+=`<div class="${dayCls}">
+      <div class="ag-head">
+        <span class="${dateCls}">${label}</span>
+        <span class="ag-cnt">${(DATA[ds].events||[]).length}件</span>
+      </div>
+      ${items}
+    </div>`;
+  });
+  list.innerHTML=html;
+}
+
 function buildList(market){
   const isJP=market==='jp';
   const th=isJP
@@ -660,6 +720,7 @@ buildCalendar('jp');
 buildCalendar('us');
 buildSpotlight('jp');
 buildSpotlight('us');
+buildImportantEvents();
 buildList('jp');
 buildList('us');
 buildAgenda('jp');
