@@ -72,10 +72,16 @@ header h1 span{color:#f97316}
 .dash-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
 .dash-title{font-size:1rem;font-weight:900;color:#1a1a1a}
 .dash-date{font-size:.74rem;color:#9ca3af;font-weight:700;white-space:nowrap}
-.climax-list{display:flex;gap:10px;overflow-x:auto;padding-bottom:2px}
-.climax{min-width:180px;border:1.5px solid #e5e7eb;border-radius:10px;background:#fff;padding:10px;cursor:pointer}
-.climax:hover{border-color:#f97316;background:#fffbf7}
-.cl-date{font-size:.76rem;font-weight:900;color:#1a1a1a}.cl-score{font-size:.62rem;color:#f97316;font-weight:900;margin-top:2px}.cl-text{font-size:.72rem;color:#374151;line-height:1.45;margin-top:6px}
+.attention-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
+.attention-card{border:1.5px solid #e5e7eb;border-radius:10px;background:#fff;padding:11px 12px;cursor:pointer;min-height:108px;display:flex;flex-direction:column;gap:5px}
+.attention-card:hover{border-color:#f97316;background:#fffbf7}
+.attention-card.us:hover{border-color:#3b82f6;background:#eff6ff}
+.att-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.att-rank{font-size:.7rem;font-weight:900;color:#f97316;background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:1px 7px;white-space:nowrap}
+.att-name{font-size:.9rem;font-weight:900;color:#1a1a1a;line-height:1.35}
+.att-code{font-size:.68rem;color:#9ca3af;margin-left:4px}
+.att-meta,.att-reason{font-size:.72rem;color:#6b7280;line-height:1.45}
+.att-reason{color:#374151}
 .watch-share{margin-top:10px;font-size:.72rem;color:#6b7280}
 .mini-btn{border:1.5px solid #e5e7eb;background:#fff;border-radius:8px;padding:5px 9px;font-size:.72rem;font-weight:800;color:#6b7280;cursor:pointer}
 .mini-btn:hover{border-color:#f97316;color:#f97316}
@@ -165,7 +171,9 @@ footer a{color:#9ca3af;text-decoration:underline}
 .event-item:last-child{border-bottom:none}
 .event-time{font-size:0.76rem;color:#6b7280;font-weight:800;flex:0 0 3.2em;white-space:nowrap}
 .event-flag{flex:0 0 1.5em;font-size:1rem;line-height:1.4}
-.event-name{flex:1;color:#1a1a1a;font-weight:700;line-height:1.5;min-width:0}
+.event-copy{flex:1;min-width:0;cursor:pointer}
+.event-name{display:block;color:#1a1a1a;font-weight:800;line-height:1.5;min-width:0}
+.event-note{display:block;color:#6b7280;font-size:.74rem;line-height:1.5;margin-top:2px}
 .evflag{margin-right:3px}
 
 /* ── アジェンダビュー（スマホ専用）── */
@@ -275,8 +283,8 @@ footer a{color:#9ca3af;text-decoration:underline}
 <section class="dash" id="dash">
   <div class="dash-grid">
     <div class="dash-card">
-      <div class="dash-head"><div class="dash-title">今週の山場</div><div class="dash-date" id="climax-range"></div></div>
-      <div class="climax-list" id="climax-list"></div>
+      <div class="dash-head"><div><div class="dash-title">今週注目の銘柄</div><div class="dash-date" id="attention-source"></div></div></div>
+      <div class="attention-list" id="attention-list"></div>
     </div>
   </div>
 </section>
@@ -288,10 +296,6 @@ footer a{color:#9ca3af;text-decoration:underline}
     <div class="stab" onclick="showView('jp','list',this)">📋 一覧</div>
   </div>
   <div id="view-jp-cal" class="view active">
-    <div class="week-section">
-      <div class="sec-head"><div class="sec-num">1</div><span class="sec-title">今週・来週の注目決算</span><span class="sec-sub" id="range-jp"></span></div>
-      <div class="spotlight" id="spot-jp"></div>
-    </div>
     <div class="view-toggle" id="vtoggle-jp">
       <div class="vtbtn active" onclick="switchView('jp','agenda',this)">📋 一覧</div>
       <div class="vtbtn" onclick="switchView('jp','cal',this)">📅 カレンダー</div>
@@ -312,10 +316,6 @@ footer a{color:#9ca3af;text-decoration:underline}
     <div class="stab" onclick="showView('us','list',this)">📋 一覧</div>
   </div>
   <div id="view-us-cal" class="view active">
-    <div class="week-section">
-      <div class="sec-head"><div class="sec-num" style="background:#1d4ed8">1</div><span class="sec-title">今週・来週の注目決算</span><span class="sec-sub" id="range-us"></span></div>
-      <div class="spotlight" id="spot-us"></div>
-    </div>
     <div class="view-toggle" id="vtoggle-us">
       <div class="vtbtn active us" onclick="switchView('us','agenda',this)">📋 一覧</div>
       <div class="vtbtn" onclick="switchView('us','cal',this)">📅 カレンダー</div>
@@ -347,7 +347,7 @@ footer a{color:#9ca3af;text-decoration:underline}
 </div>
 
 <footer>
-  📊 データ出典：<a href="https://irbank.net" target="_blank">irbank.net</a>（日本株）／ <a href="https://www.nasdaq.com" target="_blank">Nasdaq</a>（米国株）／ <a href="https://www.sbisec.co.jp" target="_blank">SBI証券</a>（経済指標）<br>
+  📊 データ出典：<a href="https://irbank.net" target="_blank">irbank.net</a>（日本株）／ <a href="https://www.nasdaq.com" target="_blank">Nasdaq</a>（米国株）／ <a href="https://www.sbisec.co.jp" target="_blank">SBI証券</a>（経済指標）／ <a href="https://finance.yahoo.co.jp/stocks/ranking/bbs" target="_blank">Yahoo!ファイナンス</a>（掲示板投稿数ランキング）<br>
   本サイトの情報は自動取得であり、正確性・完全性を保証するものではありません。<br>
   掲載情報は予告なく変更・削除される場合があります。投資判断はご自身の責任で行ってください。
 </footer>
@@ -357,7 +357,7 @@ footer a{color:#9ca3af;text-decoration:underline}
     <div class="modal-body" id="modal-body"></div>
   </div>
 </div>
-<script src="data.js?v=202605122141"></script>
+<script src="data.js?v=202605122204"></script>
 <script>
 const TL={BMO:"開場前",AMC:"閉場後",TAS:"取引中"};
 const DAYS=["月","火","水","木","金","土","日"];
@@ -393,7 +393,7 @@ function openDetail(type, ds, market, id){
     const e=(ev.events||[])[Number(id)];
     if(!e)return;
     title=`${e.flag} ${e.name}`; sub=dlabel(ds);
-    rows=[['日付',dlabel(ds)],['時刻',e.time||'—'],['国',e.country_name],['種別','経済指標']];
+    rows=[['日付',dlabel(ds)],['時刻',e.time||'—'],['国',e.country_name],['種別','経済指標'],['解説',e.commentary||'—']];
   }else{
     const s=((ev[market]||[]).find(x=>(market==='jp'?x.code:x.ticker)===id));
     if(!s)return;
@@ -638,24 +638,45 @@ function buildMarketDashboard(){
   const base=new Date(META.today+'T00:00:00');
   const monday=new Date(base); monday.setDate(base.getDate()-((base.getDay()+6)%7));
   const friday=new Date(monday); friday.setDate(monday.getDate()+4);
-  document.getElementById('climax-range').textContent=`${dfmt(monday).slice(5).replace('-','/')} 〜 ${dfmt(friday).slice(5).replace('-','/')}`;
-  const days=[];
+  const start=dfmt(base)>dfmt(monday)?base:monday;
+  const source=META.bbs_updated?`Yahoo掲示板投稿数ランキング ${META.bbs_updated} 更新`:'Yahoo掲示板投稿数ランキング + 決算規模';
+  document.getElementById('attention-source').textContent=`${dfmt(start).slice(5).replace('-','/')} 〜 ${dfmt(friday).slice(5).replace('-','/')} · ${source}`;
+  const picks=[];
   for(let i=0;i<5;i++){
-    const d=new Date(monday); d.setDate(monday.getDate()+i); const key=dfmt(d); const ev=DATA[key]||{};
-    const stocks=[...(ev.jp||[]),...(ev.us||[])];
-    const majors=stocks.filter(s=>s.major).length;
-    const huge=stocks.filter(s=>Number(s.mv)>1e12).length;
-    const econ=(ev.events||[]).length;
-    const score=majors*4+huge*2+econ*3;
-    const names=[...(ev.jp||[]).sort((a,b)=>(b.mv||0)-(a.mv||0)).slice(0,2).map(s=>s.name),...(ev.us||[]).sort((a,b)=>(b.mv||0)-(a.mv||0)).slice(0,2).map(s=>s.ticker),(ev.events||[])[0]?.name].filter(Boolean).slice(0,4);
-    if(score>0) days.push({key,score,names});
+    const d=new Date(start); d.setDate(start.getDate()+i); const key=dfmt(d); if(key>dfmt(friday)) continue;
+    const ev=DATA[key]||{};
+    (ev.jp||[]).forEach(s=>{
+      const buzz=s.buzz||0;
+      const reasons=[];
+      let score=0;
+      if(buzz){score+=(110-buzz)*6; reasons.push(`Yahoo掲示板${buzz}位`);}
+      if(s.major){score+=80; reasons.push('主要銘柄');}
+      score+=Math.min(80,Math.log10(Number(s.mv)||1)*5);
+      score+=(6-i)*8;
+      if(!buzz&&!s.major&&Number(s.mv)<8e11) return;
+      picks.push({market:'jp',id:s.code,name:s.name,code:s.code,ds:key,time:s.time||'—',score,reason:reasons.join(' · ')||'時価総額上位',mcap:s.mcap||''});
+    });
+    (ev.us||[]).forEach(s=>{
+      const reasons=[];
+      let score=0;
+      if(s.major){score+=75; reasons.push('主要米国株');}
+      score+=Math.min(75,Math.log10(Number(s.mv)||1)*5);
+      score+=(6-i)*6;
+      if(!s.major&&Number(s.mv)<2e11) return;
+      picks.push({market:'us',id:s.ticker,name:s.ticker,code:s.ticker,ds:key,time:TL[s.ct]||s.ct||'—',score,reason:reasons.join(' · ')||'時価総額上位',mcap:s.mcap||''});
+    });
   }
-  days.sort((a,b)=>b.score-a.score);
-  document.getElementById('climax-list').innerHTML=days.length?days.map(d=>`<div class="climax" onclick="showDateDetail('${d.key}')"><div class="cl-date">${dlabel(d.key)}</div><div class="cl-score">注目度 ${d.score}</div><div class="cl-text">${d.names.join('、')}</div></div>`).join(''):'<div class="events-empty">今週の山場はありません</div>';
+  picks.sort((a,b)=>b.score-a.score);
+  document.getElementById('attention-list').innerHTML=picks.length?picks.slice(0,10).map(x=>`<div class="attention-card ${x.market==='us'?'us':''}" onclick="openDetail('stock','${x.ds}','${x.market}','${x.id}')">
+    <div class="att-top"><span class="att-rank">注目度 ${Math.round(x.score)}</span><span class="dash-date">${dlabel(x.ds)}</span></div>
+    <div class="att-name">${x.market==='jp'?'🇯🇵':'🇺🇸'} ${x.name}<span class="att-code">${x.code}</span></div>
+    <div class="att-meta">${x.time} · ${x.mcap}</div>
+    <div class="att-reason">${x.reason}</div>
+  </div>`).join(''):'<div class="events-empty">今週注目の銘柄はありません</div>';
 }
 function showDateDetail(ds){
   document.getElementById('modal-title').textContent=dlabel(ds);
-  document.getElementById('modal-sub').textContent='今週の山場';
+  document.getElementById('modal-sub').textContent='予定一覧';
   document.getElementById('modal-body').innerHTML=dayItems(ds).slice(0,20).map(x=>`<div class="md-row"><span class="md-k">${x.time}</span><span class="md-v">${x.label}</span></div>`).join('');
   document.getElementById('detail-modal').classList.add('show');
 }
@@ -753,11 +774,14 @@ function buildImportantEvents(){
     const label=`${d.getMonth()+1}月${d.getDate()}日（${WD[dow]}）`;
     const dateCls='ag-head-date'+(dow===6?' sat':dow===0?' sun':'');
     const dayCls='ag-day'+(isToday?' ag-today':'');
-    const items=(DATA[ds].events||[]).map(e=>`
+    const items=(DATA[ds].events||[]).map((e,idx)=>`
       <div class="event-item">
         <span class="event-time">${e.time||'—'}</span>
         <span class="event-flag">${e.flag}</span>
-        <span class="event-name">${e.name}</span>
+        <span class="event-copy" onclick="openDetail('event','${ds}','',${idx})">
+          <span class="event-name">${e.name}</span>
+          <span class="event-note">${e.commentary||''}</span>
+        </span>
       </div>`).join('');
     html+=`<div class="${dayCls}">
       <div class="ag-head">
@@ -925,8 +949,6 @@ buildWeekChip();
 buildMarketDashboard();
 buildCalendar('jp');
 buildCalendar('us');
-buildSpotlight('jp');
-buildSpotlight('us');
 buildImportantEvents();
 buildList('jp');
 buildList('us');
