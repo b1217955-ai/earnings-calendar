@@ -72,12 +72,17 @@ header h1 span{color:#f97316}
 .dash-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
 .dash-title{font-size:1rem;font-weight:900;color:#1a1a1a}
 .dash-date{font-size:.74rem;color:#9ca3af;font-weight:700;white-space:nowrap}
+.attention-block{margin-top:14px}
+.attention-block:first-child{margin-top:0}
+.attention-block-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:8px}
+.attention-block-title{font-size:.9rem;font-weight:900;color:#1a1a1a}
 .attention-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px}
 .attention-card{border:1.5px solid #e5e7eb;border-radius:10px;background:#fff;padding:11px 12px;cursor:pointer;min-height:108px;display:flex;flex-direction:column;gap:5px}
 .attention-card:hover{border-color:#f97316;background:#fffbf7}
 .attention-card.us:hover{border-color:#3b82f6;background:#eff6ff}
 .att-top{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .att-rank{font-size:.7rem;font-weight:900;color:#f97316;background:#fff7ed;border:1px solid #fed7aa;border-radius:12px;padding:1px 7px;white-space:nowrap}
+.att-place{font-size:.72rem;font-weight:900;color:#1a1a1a;background:#f3f4f6;border-radius:12px;padding:1px 7px;white-space:nowrap}
 .att-name{font-size:.9rem;font-weight:900;color:#1a1a1a;line-height:1.35}
 .att-code{font-size:.68rem;color:#9ca3af;margin-left:4px}
 .att-meta,.att-reason{font-size:.72rem;color:#6b7280;line-height:1.45}
@@ -283,8 +288,19 @@ footer a{color:#9ca3af;text-decoration:underline}
 <section class="dash" id="dash">
   <div class="dash-grid">
     <div class="dash-card">
-      <div class="dash-head"><div><div class="dash-title">今週注目の銘柄</div><div class="dash-date" id="attention-source"></div></div></div>
-      <div class="attention-list" id="attention-list"></div>
+      <div class="dash-head"><div><div class="dash-title">注目ランキング</div><div class="dash-date" id="attention-source"></div></div></div>
+      <div class="attention-block">
+        <div class="attention-block-head"><div class="attention-block-title">明日の注目ランキング</div><div class="dash-date" id="attention-tomorrow-range"></div></div>
+        <div class="attention-list" id="attention-tomorrow"></div>
+      </div>
+      <div class="attention-block">
+        <div class="attention-block-head"><div class="attention-block-title">今週注目の銘柄</div><div class="dash-date" id="attention-week-range"></div></div>
+        <div class="attention-list" id="attention-week"></div>
+      </div>
+      <div class="attention-block">
+        <div class="attention-block-head"><div class="attention-block-title">来週の注目ランキング</div><div class="dash-date" id="attention-next-range"></div></div>
+        <div class="attention-list" id="attention-next"></div>
+      </div>
     </div>
   </div>
 </section>
@@ -357,7 +373,7 @@ footer a{color:#9ca3af;text-decoration:underline}
     <div class="modal-body" id="modal-body"></div>
   </div>
 </div>
-<script src="data.js?v=202605122204"></script>
+<script src="data.js?v=202605122228"></script>
 <script>
 const TL={BMO:"開場前",AMC:"閉場後",TAS:"取引中"};
 const DAYS=["月","火","水","木","金","土","日"];
@@ -640,39 +656,63 @@ function buildMarketDashboard(){
   const friday=new Date(monday); friday.setDate(monday.getDate()+4);
   const start=dfmt(base)>dfmt(monday)?base:monday;
   const source=META.bbs_updated?`Yahoo掲示板投稿数ランキング ${META.bbs_updated} 更新`:'Yahoo掲示板投稿数ランキング + 決算規模';
-  document.getElementById('attention-source').textContent=`${dfmt(start).slice(5).replace('-','/')} 〜 ${dfmt(friday).slice(5).replace('-','/')} · ${source}`;
-  const picks=[];
-  for(let i=0;i<5;i++){
-    const d=new Date(start); d.setDate(start.getDate()+i); const key=dfmt(d); if(key>dfmt(friday)) continue;
-    const ev=DATA[key]||{};
-    (ev.jp||[]).forEach(s=>{
-      const buzz=s.buzz||0;
-      const reasons=[];
-      let score=0;
-      if(buzz){score+=(110-buzz)*6; reasons.push(`Yahoo掲示板${buzz}位`);}
-      if(s.major){score+=80; reasons.push('主要銘柄');}
-      score+=Math.min(80,Math.log10(Number(s.mv)||1)*5);
-      score+=(6-i)*8;
-      if(!buzz&&!s.major&&Number(s.mv)<8e11) return;
-      picks.push({market:'jp',id:s.code,name:s.name,code:s.code,ds:key,time:s.time||'—',score,reason:reasons.join(' · ')||'時価総額上位',mcap:s.mcap||''});
-    });
-    (ev.us||[]).forEach(s=>{
-      const reasons=[];
-      let score=0;
-      if(s.major){score+=75; reasons.push('主要米国株');}
-      score+=Math.min(75,Math.log10(Number(s.mv)||1)*5);
-      score+=(6-i)*6;
-      if(!s.major&&Number(s.mv)<2e11) return;
-      picks.push({market:'us',id:s.ticker,name:s.ticker,code:s.ticker,ds:key,time:TL[s.ct]||s.ct||'—',score,reason:reasons.join(' · ')||'時価総額上位',mcap:s.mcap||''});
-    });
+  document.getElementById('attention-source').textContent=source;
+  function scoreJP(s, dayIndex){
+    const buzz=s.buzz||0;
+    const reasons=[];
+    let raw=0;
+    if(buzz){raw+=(110-buzz)*6; reasons.push(`Yahoo掲示板${buzz}位`);}
+    if(s.major){raw+=80; reasons.push('主要銘柄');}
+    raw+=Math.min(80,Math.log10(Number(s.mv)||1)*5);
+    raw+=Math.max(0,6-dayIndex)*8;
+    const score=Math.max(1,Math.min(100,Math.round(raw/8)));
+    return {score,reasons:reasons.join(' · ')||'時価総額上位'};
   }
-  picks.sort((a,b)=>b.score-a.score);
-  document.getElementById('attention-list').innerHTML=picks.length?picks.slice(0,10).map(x=>`<div class="attention-card ${x.market==='us'?'us':''}" onclick="openDetail('stock','${x.ds}','${x.market}','${x.id}')">
-    <div class="att-top"><span class="att-rank">注目度 ${Math.round(x.score)}</span><span class="dash-date">${dlabel(x.ds)}</span></div>
-    <div class="att-name">${x.market==='jp'?'🇯🇵':'🇺🇸'} ${x.name}<span class="att-code">${x.code}</span></div>
-    <div class="att-meta">${x.time} · ${x.mcap}</div>
-    <div class="att-reason">${x.reason}</div>
-  </div>`).join(''):'<div class="events-empty">今週注目の銘柄はありません</div>';
+  function scoreUS(s, dayIndex){
+    const reasons=[];
+    let raw=0;
+    if(s.major){raw+=75; reasons.push('主要米国株');}
+    raw+=Math.min(75,Math.log10(Number(s.mv)||1)*5);
+    raw+=Math.max(0,6-dayIndex)*6;
+    const score=Math.max(1,Math.min(100,Math.round(raw/2)));
+    return {score,reasons:reasons.join(' · ')||'時価総額上位'};
+  }
+  function collectPicks(fromDate, toDate){
+    const picks=[];
+    const from=new Date(fromDate+'T00:00:00');
+    const to=new Date(toDate+'T00:00:00');
+    for(let cur=new Date(from), i=0; cur<=to; cur.setDate(cur.getDate()+1), i++){
+      const key=dfmt(cur);
+      const ev=DATA[key]||{};
+      (ev.jp||[]).forEach(s=>{
+        if(!s.buzz&&!s.major&&Number(s.mv)<8e11) return;
+        const scored=scoreJP(s,i);
+        picks.push({market:'jp',id:s.code,name:s.name,code:s.code,ds:key,time:s.time||'—',score:scored.score,reason:scored.reasons,mcap:s.mcap||''});
+      });
+      (ev.us||[]).forEach(s=>{
+        if(!s.major&&Number(s.mv)<2e11) return;
+        const scored=scoreUS(s,i);
+        picks.push({market:'us',id:s.ticker,name:s.ticker,code:s.ticker,ds:key,time:TL[s.ct]||s.ct||'—',score:scored.score,reason:scored.reasons,mcap:s.mcap||''});
+      });
+    }
+    return picks.sort((a,b)=>b.score-a.score);
+  }
+  function renderRanking(elId, rangeId, titleEmpty, fromDate, toDate, limit){
+    const picks=collectPicks(fromDate,toDate).slice(0,limit);
+    document.getElementById(rangeId).textContent=fromDate===toDate?dlabel(fromDate):`${fromDate.slice(5).replace('-','/')} 〜 ${toDate.slice(5).replace('-','/')}`;
+    document.getElementById(elId).innerHTML=picks.length?picks.map((x,idx)=>`<div class="attention-card ${x.market==='us'?'us':''}" onclick="openDetail('stock','${x.ds}','${x.market}','${x.id}')">
+      <div class="att-top"><span class="att-place">${idx+1}位</span><span class="att-rank">注目度 ${x.score}/100</span></div>
+      <div class="att-name">${x.market==='jp'?'🇯🇵':'🇺🇸'} ${x.name}<span class="att-code">${x.code}</span></div>
+      <div class="att-meta">${dlabel(x.ds)} · ${x.time} · ${x.mcap}</div>
+      <div class="att-reason">${x.reason}</div>
+    </div>`).join(''):`<div class="events-empty">${titleEmpty}</div>`;
+  }
+  const tomorrow=new Date(base); tomorrow.setDate(base.getDate()+1);
+  const nextMonday=new Date(monday); nextMonday.setDate(monday.getDate()+7);
+  const nextFriday=new Date(nextMonday); nextFriday.setDate(nextMonday.getDate()+4);
+  renderRanking('attention-tomorrow','attention-tomorrow-range','明日の注目銘柄はありません',dfmt(tomorrow),dfmt(tomorrow),5);
+  renderRanking('attention-week','attention-week-range','今週注目の銘柄はありません',dfmt(start),dfmt(friday),10);
+  renderRanking('attention-next','attention-next-range','来週の注目銘柄はありません',dfmt(nextMonday),dfmt(nextFriday),10);
 }
 function showDateDetail(ds){
   document.getElementById('modal-title').textContent=dlabel(ds);
