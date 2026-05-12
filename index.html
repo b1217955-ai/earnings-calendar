@@ -67,21 +67,11 @@ header h1 span{color:#f97316}
 
 /* ── 朝イチダッシュボード ── */
 .dash{padding:16px 20px 4px;background:#f7f6f3}
-.dash-grid{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(280px,.9fr);gap:14px;margin-bottom:14px}
+.dash-grid{display:grid;grid-template-columns:1fr;gap:14px;margin-bottom:14px}
 .dash-card{background:#fff;border:1.5px solid #e5e7eb;border-radius:12px;padding:14px 16px;box-shadow:0 1px 4px rgba(0,0,0,.06)}
-.dash-card.share{background:#fff7ed;border-color:#fed7aa}
 .dash-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
 .dash-title{font-size:1rem;font-weight:900;color:#1a1a1a}
 .dash-date{font-size:.74rem;color:#9ca3af;font-weight:700;white-space:nowrap}
-.dash-items{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px}
-.dash-item{border:1px solid #f3f4f6;background:#fff;border-radius:8px;padding:8px 9px;cursor:pointer;min-width:0}
-.dash-item:hover{border-color:#fed7aa;background:#fffbf7}
-.di-top{display:flex;align-items:center;gap:6px;font-size:.68rem;color:#9ca3af;font-weight:800;margin-bottom:3px}
-.di-name{font-size:.82rem;font-weight:800;color:#1a1a1a;line-height:1.35;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-.di-meta{font-size:.66rem;color:#6b7280;margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tag{display:inline-block;background:#f3f4f6;color:#6b7280;border-radius:8px;padding:1px 6px;font-size:.58rem;font-weight:800;margin-left:4px;vertical-align:1px}
-.tag.bank{background:#ecfdf5;color:#047857}.tag.semi{background:#eef2ff;color:#4338ca}.tag.auto{background:#fef3c7;color:#92400e}.tag.tel{background:#eff6ff;color:#1d4ed8}.tag.trading{background:#fdf2f8;color:#be185d}
-.rush{border-left:4px solid #f97316;background:#fff7ed;color:#9a3412;border-radius:8px;padding:8px 10px;font-size:.78rem;font-weight:800;margin-bottom:10px}
 .climax-list{display:flex;gap:10px;overflow-x:auto;padding-bottom:2px}
 .climax{min-width:180px;border:1.5px solid #e5e7eb;border-radius:10px;background:#fff;padding:10px;cursor:pointer}
 .climax:hover{border-color:#f97316;background:#fffbf7}
@@ -232,7 +222,7 @@ footer a{color:#9ca3af;text-decoration:underline}
   /* 注目カード */
   .spotlight{gap:8px}
   .scard{min-width:calc(50% - 4px);max-width:calc(50% - 4px)}
-  .dash{padding:12px 14px 0}.dash-grid{grid-template-columns:1fr}.dash-items{grid-template-columns:1fr}.dash-title{font-size:.92rem}
+  .dash{padding:12px 14px 0}.dash-grid{grid-template-columns:1fr}.dash-title{font-size:.92rem}
 }
 
 /* ── テーブルカレンダー ── */
@@ -284,11 +274,6 @@ footer a{color:#9ca3af;text-decoration:underline}
 
 <section class="dash" id="dash">
   <div class="dash-grid">
-    <div class="dash-card share">
-      <div class="dash-head"><div><div class="dash-title">今日のマーケット予定</div><div class="dash-date" id="brief-date"></div></div><button class="mini-btn" onclick="copyTodayText()">共有文</button></div>
-      <div id="rush-box"></div>
-      <div class="dash-items" id="today-brief"></div>
-    </div>
     <div class="dash-card">
       <div class="dash-head"><div class="dash-title">今週の山場</div><div class="dash-date" id="climax-range"></div></div>
       <div class="climax-list" id="climax-list"></div>
@@ -372,7 +357,7 @@ footer a{color:#9ca3af;text-decoration:underline}
     <div class="modal-body" id="modal-body"></div>
   </div>
 </div>
-<script src="data.js?v=202605122124"></script>
+<script src="data.js?v=202605122141"></script>
 <script>
 const TL={BMO:"開場前",AMC:"閉場後",TAS:"取引中"};
 const DAYS=["月","火","水","木","金","土","日"];
@@ -380,8 +365,6 @@ const WD=['日','月','火','水','木','金','土'];
 const JP_HOLIDAYS=new Set(['2026-01-01','2026-01-02','2026-01-12','2026-02-11','2026-02-23','2026-03-20','2026-04-29','2026-05-04','2026-05-05','2026-05-06','2026-07-20','2026-08-11','2026-09-21','2026-09-23','2026-10-13','2026-11-03','2026-11-23','2026-12-31','2027-01-01','2027-01-02','2027-01-11','2027-02-11','2027-02-23']);
 const US_HOLIDAYS=new Set(['2026-01-01','2026-01-19','2026-02-16','2026-04-03','2026-05-25','2026-07-03','2026-09-07','2026-11-26','2026-12-25','2027-01-01','2027-01-18','2027-02-15']);
 const JP_US={'AAPL':'アップル','MSFT':'マイクロソフト','GOOGL':'アルファベット','GOOG':'アルファベット','AMZN':'アマゾン','META':'メタ','TSLA':'テスラ','NVDA':'エヌビディア','JPM':'JPモルガン','V':'ビザ','MA':'マスターカード','UNH':'ユナイテッドヘルス','JNJ':'J&J','XOM':'エクソンモービル','WMT':'ウォルマート','PG':'P&G','BAC':'バンク・オブ・アメリカ','HD':'ホームデポ','CVX':'シェブロン','ABBV':'アッヴィ','MRK':'メルク','KO':'コカ・コーラ','PEP':'ペプシコ','AVGO':'ブロードコム','COST':'コストコ','CRM':'セールスフォース','AMD':'AMD','INTC':'インテル','QCOM':'クアルコム','TXN':'テキサスインスツルメンツ','GS':'ゴールドマン・サックス','MS':'モルガン・スタンレー','C':'シティグループ','WFC':'ウェルズ・ファーゴ','NFLX':'ネットフリックス','ADBE':'アドビ','ORCL':'オラクル','IBM':'IBM','GE':'GE','F':'フォード','GM':'GM','BA':'ボーイング','CAT':'キャタピラー','HON':'ハネウェル','RTX':'レイセオン','LMT':'ロッキード・マーティン','UPS':'UPS','FDX':'フェデックス','DIS':'ディズニー','T':'AT&T','VZ':'ベライゾン','MCD':'マクドナルド','SBUX':'スターバックス','NKE':'ナイキ','AXP':'アメックス','PYPL':'ペイパル','UBER':'ウーバー','SHOP':'ショッピファイ','SNAP':'スナップ','SPOT':'スポティファイ','PLTR':'パランティア','RBLX':'ロブロックス','COIN':'コインベース','ABNB':'エアビーアンドビー','TSM':'TSMC','ASML':'ASML','NVO':'ノボノルディスク','TM':'トヨタ','SONY':'ソニー','HMC':'ホンダ','SMFG':'三井住友FG','MFG':'みずほFG','MTU':'三菱UFJ'};
-const JP_TAG={'8306':'銀行','8316':'銀行','8411':'銀行','7182':'銀行','7181':'銀行','8309':'銀行','8035':'半導体','6857':'半導体','6723':'半導体','6146':'半導体','4063':'半導体','7203':'自動車','7267':'自動車','7269':'自動車','7201':'自動車','7211':'自動車','9432':'通信','9433':'通信','9434':'通信','8001':'商社','8002':'商社','8031':'商社','8053':'商社','8058':'商社','7974':'ゲーム','6758':'ゲーム','4502':'製薬','4568':'製薬','4519':'製薬','9983':'小売','8267':'小売','3382':'小売'};
-const US_TAG={NVDA:'半導体',AMD:'半導体',INTC:'半導体',TSM:'半導体',ASML:'半導体',QCOM:'半導体',JPM:'銀行',BAC:'銀行',WFC:'銀行',C:'銀行',GS:'銀行',MS:'銀行',TM:'自動車',TSLA:'自動車',F:'自動車',GM:'自動車',HMC:'自動車',T:'通信',VZ:'通信',WMT:'小売',COST:'小売',HD:'小売',AMZN:'小売',NKE:'小売',MRK:'製薬',JNJ:'製薬',PFE:'製薬',LLY:'製薬',NVO:'製薬',NTES:'ゲーム',RBLX:'ゲーム'};
 let FAVS=new Set(JSON.parse(localStorage.getItem('ecfavs')||'[]'));
 
 function saveFavs(){localStorage.setItem('ecfavs',JSON.stringify([...FAVS]));updateFavBadge();}
@@ -390,16 +373,14 @@ function updateFavBadge(){const n=FAVS.size;const el=document.getElementById('fa
 function dfmt(x){return`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;}
 function dlabel(ds){const d=new Date(ds+'T00:00:00');return`${d.getMonth()+1}月${d.getDate()}日（${WD[d.getDay()]}）`;}
 function sortTimeVal(t){if(!t)return 9999;const m=String(t).match(/(\d{1,2}):(\d{2})/);return m?Number(m[1])*60+Number(m[2]):9999;}
-function stockTag(m,s){return m==='jp'?JP_TAG[s.code]:US_TAG[s.ticker];}
-function tagHtml(tag){return tag?`<span class="tag ${tag==='銀行'?'bank':tag==='半導体'?'semi':tag==='自動車'?'auto':tag==='通信'?'tel':tag==='商社'?'trading':''}">${tag}</span>`:'';}
 function stockTime(m,s){return m==='jp'?(s.time||'—'):(TL[s.ct]||s.ct||'—');}
 function stockCode(m,s){return m==='jp'?s.code:s.ticker;}
 function stockName(m,s){return m==='jp'?s.name:(JP_US[s.ticker]||s.name||s.ticker);}
 function dayItems(ds){
   const ev=DATA[ds]||{};
-  const jp=[...(ev.jp||[])].sort((a,b)=>(b.mv||0)-(a.mv||0)).slice(0,6).map(s=>({type:'stock',market:'jp',id:s.code,time:stockTime('jp',s),label:s.name,meta:`${s.code} · ${s.mcap||''}`,tag:stockTag('jp',s),major:s.major}));
-  const us=[...(ev.us||[])].sort((a,b)=>(b.mv||0)-(a.mv||0)).slice(0,6).map(s=>({type:'stock',market:'us',id:s.ticker,time:stockTime('us',s),label:s.ticker,meta:`${JP_US[s.ticker]||s.name||''} · ${s.mcap||''}`,tag:stockTag('us',s),major:s.major}));
-  const ex=(ev.events||[]).map((e,i)=>({type:'event',idx:i,time:e.time||'—',label:`${e.flag} ${e.name}`,meta:e.country_name,tag:'経済指標'}));
+  const jp=[...(ev.jp||[])].sort((a,b)=>(b.mv||0)-(a.mv||0)).slice(0,6).map(s=>({type:'stock',market:'jp',id:s.code,time:stockTime('jp',s),label:s.name,meta:`${s.code} · ${s.mcap||''}`,major:s.major}));
+  const us=[...(ev.us||[])].sort((a,b)=>(b.mv||0)-(a.mv||0)).slice(0,6).map(s=>({type:'stock',market:'us',id:s.ticker,time:stockTime('us',s),label:s.ticker,meta:`${JP_US[s.ticker]||s.name||''} · ${s.mcap||''}`,major:s.major}));
+  const ex=(ev.events||[]).map((e,i)=>({type:'event',idx:i,time:e.time||'—',label:`${e.flag} ${e.name}`,meta:e.country_name}));
   return [...jp,...us,...ex].sort((a,b)=>sortTimeVal(a.time)-sortTimeVal(b.time));
 }
 function nextScheduleDate(){
@@ -416,11 +397,10 @@ function openDetail(type, ds, market, id){
   }else{
     const s=((ev[market]||[]).find(x=>(market==='jp'?x.code:x.ticker)===id));
     if(!s)return;
-    const tag=stockTag(market,s);
-    title=`${market==='jp'?'🇯🇵':'🇺🇸'} ${stockName(market,s)} ${tagHtml(tag)}`;
+    title=`${market==='jp'?'🇯🇵':'🇺🇸'} ${stockName(market,s)}`;
     sub=dlabel(ds);
     const same=[...(ev[market]||[])].filter(x=>x.major||Number(x.mv)>1e12).slice(0,5).map(x=>market==='jp'?x.name:x.ticker).join('、')||'—';
-    rows=[['日付',dlabel(ds)],['発表時間',stockTime(market,s)],['コード',stockCode(market,s)],['時価総額',s.mcap||'—'],['業種タグ',tag||'—'],['同日大型銘柄',same]];
+    rows=[['日付',dlabel(ds)],['発表時間',stockTime(market,s)],['コード',stockCode(market,s)],['時価総額',s.mcap||'—'],['同日大型銘柄',same]];
   }
   document.getElementById('modal-title').innerHTML=title;
   document.getElementById('modal-sub').textContent=sub;
@@ -445,11 +425,6 @@ function copyWatchUrl(){
   const codes=[...FAVS].map(k=>k.split(':')[1]).join(',');
   const u=new URL(location.href); if(codes)u.searchParams.set('watch',codes); else u.searchParams.delete('watch');
   navigator.clipboard?.writeText(u.toString());
-}
-function copyTodayText(){
-  const ds=nextScheduleDate();
-  const text=`${dlabel(ds)}の予定\n`+dayItems(ds).slice(0,10).map(x=>`${x.time} ${x.label}`).join('\n');
-  navigator.clipboard?.writeText(text);
 }
 
 function showMarket(m,el){
@@ -521,8 +496,8 @@ function buildTableCell(dateStr,ev,market){
   const visible=topEntries.map(x=>x.s);
   const hidden=stocks.filter((_,i)=>!topSet.has(i));
   function sname(s){
-    if(market==='jp') return `<span onclick="openDetail('stock','${dateStr}','jp','${s.code}')">${s.name}<span class="tgc">${s.code}</span>${tagHtml(stockTag('jp',s))}</span>`;
-    return `<span onclick="openDetail('stock','${dateStr}','us','${s.ticker}')">${JP_US[s.ticker]?`${s.ticker} ${JP_US[s.ticker]}`:s.ticker}${tagHtml(stockTag('us',s))}</span>`;
+    if(market==='jp') return `<span onclick="openDetail('stock','${dateStr}','jp','${s.code}')">${s.name}<span class="tgc">${s.code}</span></span>`;
+    return `<span onclick="openDetail('stock','${dateStr}','us','${s.ticker}')">${JP_US[s.ticker]?`${s.ticker} ${JP_US[s.ticker]}`:s.ticker}</span>`;
   }
   function groupByTime(list){
     const g={};
@@ -659,32 +634,7 @@ function buildWeekChip(){
   document.getElementById('cweek').textContent=`今週 JP ${jp}社 / US ${us}社`;
 }
 
-function rushWarnings(ds){
-  const ev=DATA[ds]||{}, counts={};
-  ['jp','us'].forEach(m=>{
-    [...(ev[m]||[])].sort((a,b)=>(b.mv||0)-(a.mv||0)).slice(0,30).forEach(s=>{
-      const tag=stockTag(m,s); if(tag) counts[tag]=(counts[tag]||0)+1;
-    });
-  });
-  return Object.entries(counts).filter(([_,n])=>n>=2).sort((a,b)=>b[1]-a[1]).map(([tag,n])=>`${tag} ${n}社`);
-}
-function renderDashItem(x, ds){
-  const icon=x.type==='event'?'📈':x.market==='jp'?'🇯🇵':'🇺🇸';
-  const click=x.type==='event'?`openDetail('event','${ds}','',${x.idx})`:`openDetail('stock','${ds}','${x.market}','${x.id}')`;
-  return `<div class="dash-item" onclick="${click}">
-    <div class="di-top"><span>${icon}</span><span>${x.time}</span>${tagHtml(x.tag)}</div>
-    <div class="di-name">${x.label}</div>
-    <div class="di-meta">${x.meta||''}</div>
-  </div>`;
-}
 function buildMarketDashboard(){
-  const ds=nextScheduleDate();
-  const items=dayItems(ds);
-  document.getElementById('brief-date').textContent=`${dlabel(ds)} · ${items.length}件`;
-  document.getElementById('today-brief').innerHTML=items.length?items.slice(0,12).map(x=>renderDashItem(x,ds)).join(''):'<div class="events-empty">今日の予定はありません</div>';
-  const rush=rushWarnings(ds);
-  document.getElementById('rush-box').innerHTML=rush.length?`<div class="rush">決算ラッシュ警報: ${rush.join(' / ')}</div>`:'';
-
   const base=new Date(META.today+'T00:00:00');
   const monday=new Date(base); monday.setDate(base.getDate()-((base.getDay()+6)%7));
   const friday=new Date(monday); friday.setDate(monday.getDate()+4);
@@ -856,8 +806,8 @@ function buildFavList(){
     const d=new Date(ds+'T00:00:00');
     const diffDays=Math.round((d-new Date(META.today+'T00:00:00'))/86400000);
     const label=`${d.getMonth()+1}月${d.getDate()}日（${WD[d.getDay()]}）`;
-    (ev.jp||[]).forEach(s=>{if(FAVS.has('jp:'+s.code)) items.push({label,diffDays,name:`🇯🇵 ${s.name}（${s.code}） ${tagHtml(stockTag('jp',s))}`,sub:`${s.kind} · ${s.time||'時間未定'} · ${s.mcap}`,fk:'jp:'+s.code,ds,market:'jp',id:s.code});});
-    (ev.us||[]).forEach(s=>{if(FAVS.has('us:'+s.ticker)) items.push({label,diffDays,name:`🇺🇸 ${s.name}（${s.ticker}） ${tagHtml(stockTag('us',s))}`,sub:`Q決算 · ${TL[s.ct]||s.ct||'時間未定'} · ${s.mcap}`,fk:'us:'+s.ticker,ds,market:'us',id:s.ticker});});
+    (ev.jp||[]).forEach(s=>{if(FAVS.has('jp:'+s.code)) items.push({label,diffDays,name:`🇯🇵 ${s.name}（${s.code}）`,sub:`${s.kind} · ${s.time||'時間未定'} · ${s.mcap}`,fk:'jp:'+s.code,ds,market:'jp',id:s.code});});
+    (ev.us||[]).forEach(s=>{if(FAVS.has('us:'+s.ticker)) items.push({label,diffDays,name:`🇺🇸 ${s.name}（${s.ticker}）`,sub:`Q決算 · ${TL[s.ct]||s.ct||'時間未定'} · ${s.mcap}`,fk:'us:'+s.ticker,ds,market:'us',id:s.ticker});});
   });
   if(!items.length){document.getElementById('fav-list').innerHTML='<div class="fav-empty">登録銘柄の決算は取得期間にありません</div>';return;}
   document.getElementById('fav-list').innerHTML='<div class="fav-wrap">'+items.map(it=>`
