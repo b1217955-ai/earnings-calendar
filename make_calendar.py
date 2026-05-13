@@ -492,6 +492,12 @@ header h1 span{color:#f97316}
 .dash-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}
 .dash-title{font-size:1rem;font-weight:900;color:#1a1a1a}
 .dash-date{font-size:.74rem;color:#9ca3af;font-weight:700;white-space:nowrap}
+.attention-tabs{display:flex;gap:6px;flex-wrap:wrap;margin:-2px 0 12px}
+.attention-tab{border:1.5px solid #e5e7eb;background:#fff;color:#6b7280;border-radius:18px;padding:5px 12px;font-size:.74rem;font-weight:900;cursor:pointer;transition:.15s}
+.attention-tab:hover{border-color:#f97316;color:#f97316}
+.attention-tab.active{background:#f97316;border-color:#f97316;color:#fff}
+.attention-tab.us.active{background:#1d4ed8;border-color:#1d4ed8;color:#fff}
+.attention-tab.all.active{background:#374151;border-color:#374151;color:#fff}
 .attention-block{margin-top:14px}
 .attention-block:first-child{margin-top:0}
 .attention-block-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:8px}
@@ -709,6 +715,11 @@ footer a{color:#9ca3af;text-decoration:underline}
   <div class="dash-grid">
     <div class="dash-card">
       <div class="dash-head"><div><div class="dash-title">注目ランキング</div><div class="dash-date" id="attention-source"></div></div></div>
+      <div class="attention-tabs">
+        <button class="attention-tab active" data-market="jp" onclick="switchAttentionMarket('jp',this)">🇯🇵 日本株</button>
+        <button class="attention-tab us" data-market="us" onclick="switchAttentionMarket('us',this)">🇺🇸 米国株</button>
+        <button class="attention-tab all" data-market="all" onclick="switchAttentionMarket('all',this)">全部</button>
+      </div>
       <div class="attention-block">
         <div class="attention-block-head"><div class="attention-block-title">明日の注目ランキング</div><div class="dash-date" id="attention-tomorrow-range"></div></div>
         <div class="attention-list" id="attention-tomorrow"></div>
@@ -1097,42 +1108,58 @@ function buildMarketDashboard(){
     const score=Math.max(1,Math.min(100,Math.round(raw/2)));
     return {score,reasons:reasons.join(' · ')||'時価総額上位'};
   }
-  function collectPicks(fromDate, toDate){
+  function collectPicks(fromDate, toDate, marketFilter){
     const picks=[];
     const from=new Date(fromDate+'T00:00:00');
     const to=new Date(toDate+'T00:00:00');
     for(let cur=new Date(from), i=0; cur<=to; cur.setDate(cur.getDate()+1), i++){
       const key=dfmt(cur);
       const ev=DATA[key]||{};
-      (ev.jp||[]).forEach(s=>{
-        if(!s.buzz&&!s.major&&Number(s.mv)<8e11) return;
-        const scored=scoreJP(s,i);
-        picks.push({market:'jp',id:s.code,name:s.name,code:s.code,ds:key,time:s.time||'—',score:scored.score,reason:scored.reasons,mcap:s.mcap||''});
-      });
-      (ev.us||[]).forEach(s=>{
-        if(!s.major&&Number(s.mv)<2e11) return;
-        const scored=scoreUS(s,i);
-        picks.push({market:'us',id:s.ticker,name:s.ticker,code:s.ticker,ds:key,time:TL[s.ct]||s.ct||'—',score:scored.score,reason:scored.reasons,mcap:s.mcap||''});
-      });
+      if(marketFilter==='jp'||marketFilter==='all'){
+        (ev.jp||[]).forEach(s=>{
+          if(!s.buzz&&!s.major&&Number(s.mv)<8e11) return;
+          const scored=scoreJP(s,i);
+          picks.push({market:'jp',id:s.code,name:s.name,code:s.code,ds:key,time:s.time||'—',score:scored.score,reason:scored.reasons,mcap:s.mcap||''});
+        });
+      }
+      if(marketFilter==='us'||marketFilter==='all'){
+        (ev.us||[]).forEach(s=>{
+          if(!s.major&&Number(s.mv)<2e11) return;
+          const scored=scoreUS(s,i);
+          picks.push({market:'us',id:s.ticker,name:s.ticker,code:s.ticker,ds:key,time:TL[s.ct]||s.ct||'—',score:scored.score,reason:scored.reasons,mcap:s.mcap||''});
+        });
+      }
     }
     return picks.sort((a,b)=>b.score-a.score);
   }
-  function renderRanking(elId, rangeId, titleEmpty, fromDate, toDate, limit){
-    const picks=collectPicks(fromDate,toDate).slice(0,limit);
+  function emptyLabel(period, marketFilter){
+    const m=marketFilter==='jp'?'日本株':marketFilter==='us'?'米国株':'';
+    return `${period}の${m}注目銘柄はありません`;
+  }
+  function renderRanking(elId, rangeId, periodLabel, fromDate, toDate, limit, marketFilter){
+    const picks=collectPicks(fromDate,toDate,marketFilter).slice(0,limit);
     document.getElementById(rangeId).textContent=fromDate===toDate?dlabel(fromDate):`${fromDate.slice(5).replace('-','/')} 〜 ${toDate.slice(5).replace('-','/')}`;
     document.getElementById(elId).innerHTML=picks.length?picks.map((x,idx)=>`<div class="attention-card ${x.market==='us'?'us':''}" onclick="openDetail('stock','${x.ds}','${x.market}','${x.id}')">
       <div class="att-top"><span class="att-place">${idx+1}位</span><span class="att-rank">注目度 ${x.score}/100</span></div>
       <div class="att-name">${x.market==='jp'?'🇯🇵':'🇺🇸'} ${x.name}<span class="att-code">${x.code}</span></div>
       <div class="att-meta">${dlabel(x.ds)} · ${x.time} · ${x.mcap}</div>
       <div class="att-reason">${x.reason}</div>
-    </div>`).join(''):`<div class="events-empty">${titleEmpty}</div>`;
+    </div>`).join(''):`<div class="events-empty">${emptyLabel(periodLabel,marketFilter)}</div>`;
   }
   const tomorrow=new Date(base); tomorrow.setDate(base.getDate()+1);
   const nextMonday=new Date(monday); nextMonday.setDate(monday.getDate()+7);
   const nextFriday=new Date(nextMonday); nextFriday.setDate(nextMonday.getDate()+4);
-  renderRanking('attention-tomorrow','attention-tomorrow-range','明日の注目銘柄はありません',dfmt(tomorrow),dfmt(tomorrow),5);
-  renderRanking('attention-week','attention-week-range','今週注目の銘柄はありません',dfmt(start),dfmt(friday),10);
-  renderRanking('attention-next','attention-next-range','来週の注目銘柄はありません',dfmt(nextMonday),dfmt(nextFriday),10);
+  window.renderAttentionRankings=function(marketFilter='jp'){
+    renderRanking('attention-tomorrow','attention-tomorrow-range','明日',dfmt(tomorrow),dfmt(tomorrow),5,marketFilter);
+    renderRanking('attention-week','attention-week-range','今週',dfmt(start),dfmt(friday),10,marketFilter);
+    renderRanking('attention-next','attention-next-range','来週',dfmt(nextMonday),dfmt(nextFriday),10,marketFilter);
+  };
+  window.renderAttentionRankings('jp');
+}
+function switchAttentionMarket(market,el){
+  document.querySelectorAll('.attention-tab').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  window.renderAttentionRankings?.(market);
 }
 function showDateDetail(ds){
   document.getElementById('modal-title').textContent=dlabel(ds);
