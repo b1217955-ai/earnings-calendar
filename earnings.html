@@ -93,6 +93,8 @@ header h1 span{color:#f97316}
 .att-code{font-size:.68rem;color:#9ca3af;margin-left:4px}
 .att-meta,.att-reason{font-size:.72rem;color:#6b7280;line-height:1.45}
 .att-reason{color:#374151}
+.att-why{font-size:.72rem;color:#4b5563;line-height:1.5;background:#f9fafb;border-radius:8px;padding:6px 8px;margin-top:2px}
+.att-why ul{margin:0;padding-left:1.1em}.att-why li{margin:2px 0}
 .watch-share{margin-top:10px;font-size:.72rem;color:#6b7280}
 .mini-btn{border:1.5px solid #e5e7eb;background:#fff;border-radius:8px;padding:5px 9px;font-size:.72rem;font-weight:800;color:#6b7280;cursor:pointer}
 .mini-btn:hover{border-color:#f97316;color:#f97316}
@@ -384,7 +386,7 @@ footer a{color:#9ca3af;text-decoration:underline}
     <div class="modal-body" id="modal-body"></div>
   </div>
 </div>
-<script src="data.js?v=202605141639"></script>
+<script src="data.js?v=202605142046"></script>
 <script>
 const TL={BMO:"開場前",AMC:"閉場後",TAS:"取引中"};
 const DAYS=["月","火","水","木","金","土","日"];
@@ -403,6 +405,7 @@ function sortTimeVal(t){if(!t)return 9999;const m=String(t).match(/(\d{1,2}):(\d
 function stockTime(m,s){return m==='jp'?(s.time||'—'):(TL[s.ct]||s.ct||'—');}
 function stockCode(m,s){return m==='jp'?s.code:s.ticker;}
 function stockName(m,s){return m==='jp'?s.name:(JP_US[s.ticker]||s.name||s.ticker);}
+function escHtml(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
 function dayItems(ds){
   const ev=DATA[ds]||{};
   const jp=[...(ev.jp||[])].sort((a,b)=>(b.mv||0)-(a.mv||0)).slice(0,6).map(s=>({type:'stock',market:'jp',id:s.code,time:stockTime('jp',s),label:s.name,meta:`${s.code} · ${s.mcap||''}`,major:s.major}));
@@ -671,22 +674,40 @@ function buildMarketDashboard(){
   function scoreJP(s, dayIndex){
     const buzz=s.buzz||0;
     const reasons=[];
+    const why=[];
     let raw=0;
-    if(buzz){raw+=(110-buzz)*6; reasons.push(`Yahoo掲示板${buzz}位`);}
-    if(s.major){raw+=80; reasons.push('主要銘柄');}
+    if(buzz){
+      raw+=(110-buzz)*6;
+      reasons.push(`Yahoo掲示板${buzz}位`);
+      why.push(`Yahoo掲示板の投稿数ランキングで上位に入り、個人投資家の関心が高まっています。`);
+    }
+    if(s.major){
+      raw+=80;
+      reasons.push('主要銘柄');
+      why.push(`主要銘柄として決算前後の値動きやニュース注目度が高くなりやすい銘柄です。`);
+    }
     raw+=Math.min(80,Math.log10(Number(s.mv)||1)*5);
+    if(Number(s.mv)>=8e11) why.push(`時価総額が大きく、同日の決算銘柄の中でも市場への影響が目立ちやすいです。`);
     raw+=Math.max(0,6-dayIndex)*8;
     const score=Math.max(1,Math.min(100,Math.round(raw/8)));
-    return {score,reasons:reasons.join(' · ')||'時価総額上位'};
+    if(dayIndex<=1) why.push(`発表日が近く、短期の確認需要が集まりやすいタイミングです。`);
+    return {score,reasons:reasons.join(' · ')||'時価総額上位',topics:why.slice(0,2).length?why.slice(0,2):['時価総額と発表日程から、今週の確認対象になりやすい銘柄です。']};
   }
   function scoreUS(s, dayIndex){
     const reasons=[];
+    const why=[];
     let raw=0;
-    if(s.major){raw+=75; reasons.push('主要米国株');}
+    if(s.major){
+      raw+=75;
+      reasons.push('主要米国株');
+      why.push(`主要米国株として決算内容が指数や関連銘柄にも意識されやすい銘柄です。`);
+    }
     raw+=Math.min(75,Math.log10(Number(s.mv)||1)*5);
+    if(Number(s.mv)>=2e11) why.push(`時価総額が大きく、決算結果が市場全体のムードに影響しやすいです。`);
     raw+=Math.max(0,6-dayIndex)*6;
     const score=Math.max(1,Math.min(100,Math.round(raw/2)));
-    return {score,reasons:reasons.join(' · ')||'時価総額上位'};
+    if(dayIndex<=1) why.push(`発表日が近く、決算前のポジション調整や確認需要が出やすいタイミングです。`);
+    return {score,reasons:reasons.join(' · ')||'時価総額上位',topics:why.slice(0,2).length?why.slice(0,2):['時価総額と発表日程から、今週の確認対象になりやすい銘柄です。']};
   }
   function collectPicks(fromDate, toDate, marketFilter){
     const picks=[];
@@ -699,14 +720,14 @@ function buildMarketDashboard(){
         (ev.jp||[]).forEach(s=>{
           if(!s.buzz&&!s.major&&Number(s.mv)<8e11) return;
           const scored=scoreJP(s,i);
-          picks.push({market:'jp',id:s.code,name:s.name,code:s.code,ds:key,time:s.time||'—',score:scored.score,reason:scored.reasons,mcap:s.mcap||''});
+          picks.push({market:'jp',id:s.code,name:s.name,code:s.code,ds:key,time:s.time||'—',score:scored.score,reason:scored.reasons,topics:(s.attention_topics&&s.attention_topics.length?s.attention_topics:scored.topics),mcap:s.mcap||''});
         });
       }
       if(marketFilter==='us'||marketFilter==='all'){
         (ev.us||[]).forEach(s=>{
           if(!s.major&&Number(s.mv)<2e11) return;
           const scored=scoreUS(s,i);
-          picks.push({market:'us',id:s.ticker,name:s.ticker,code:s.ticker,ds:key,time:TL[s.ct]||s.ct||'—',score:scored.score,reason:scored.reasons,mcap:s.mcap||''});
+          picks.push({market:'us',id:s.ticker,name:s.ticker,code:s.ticker,ds:key,time:TL[s.ct]||s.ct||'—',score:scored.score,reason:scored.reasons,topics:(s.attention_topics&&s.attention_topics.length?s.attention_topics:scored.topics),mcap:s.mcap||''});
         });
       }
     }
@@ -724,6 +745,7 @@ function buildMarketDashboard(){
       <div class="att-name">${x.market==='jp'?'🇯🇵':'🇺🇸'} ${x.name}<span class="att-code">${x.code}</span></div>
       <div class="att-meta">${dlabel(x.ds)} · ${x.time} · ${x.mcap}</div>
       <div class="att-reason">${x.reason}</div>
+      <div class="att-why"><ul>${(x.topics||[]).slice(0,3).map(t=>`<li>${escHtml(t)}</li>`).join('')}</ul></div>
     </div>`).join(''):`<div class="events-empty">${emptyLabel(periodLabel,marketFilter)}</div>`;
   }
   const tomorrow=new Date(base); tomorrow.setDate(base.getDate()+1);
