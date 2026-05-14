@@ -8,9 +8,10 @@
 
 import requests
 from bs4 import BeautifulSoup
-import calendar, time, os, re
+import calendar, time, os, re, math
 from datetime import datetime, timedelta
 import pytz
+from urllib.parse import quote
 
 try:
     from dotenv import load_dotenv
@@ -327,6 +328,14 @@ def economic_commentary(name, country):
 
 YAHOO_BBS_RANKS = {}
 YAHOO_BBS_UPDATED = ""
+ATTENTION_TOPICS = {}
+
+TOPIC_KEYWORDS = [
+    "決算", "業績", "上方修正", "下方修正", "増配", "減配", "自社株買い", "株主還元",
+    "PTS", "急騰", "急落", "利確", "信用", "空売り", "需給", "レーティング", "目標株価",
+    "AI", "半導体", "データセンター", "為替", "円安", "円高", "関税", "金利",
+    "提携", "受注", "新製品", "TOB", "M&A", "配当",
+]
 
 def fetch_yahoo_bbs_ranking():
     """Yahoo!ファイナンスの日本株掲示板投稿数ランキングを {code: rank} で返す"""
@@ -356,6 +365,167 @@ def fetch_yahoo_bbs_ranking():
     except Exception as e:
         print(f"  Yahoo掲示板ランキング取得失敗: {e}")
     return ranks
+
+def clean_topic_text(text):
+    text = re.sub(r"\s+", " ", text or "").strip()
+    text = re.sub(r"https?://\S+", "", text)
+    return text[:160]
+
+def summarize_topic(source, texts):
+    joined = " ".join(clean_topic_text(t) for t in texts if t)
+    if not joined:
+        return ""
+    hits = []
+    for kw in TOPIC_KEYWORDS:
+        n = joined.count(kw)
+        if n:
+            hits.append((n, kw))
+    hits = [kw for _, kw in sorted(hits, reverse=True)[:3]]
+    if source == "bbs":
+        if hits:
+            return f"掲示板では{ '・'.join(hits) }を巡る投稿が目立ちます。"
+        return "掲示板では決算前後の株価反応や短期需給への投稿が出ています。"
+    if source == "kabutan":
+        if hits:
+            return f"株探では{ '・'.join(hits) }関連の材料や決算見出しが確認できます。"
+        return "株探では個別材料や決算速報の見出しが確認できます。"
+    if hits:
+        return f"ニュースでは{ '・'.join(hits) }関連の話題が出ています。"
+    return "ニュースでは直近材料への関心が見られます。"
+
+def fetch_yahoo_bbs_topics(code):
+    texts = []
+    urls = [
+        f"https://finance.yahoo.co.jp/quote/{code}.T/bbs",
+        f"https://finance.yahoo.co.jp/cm/search?order=d&page=1&query={quote(code)}&type=comment",
+    ]
+    try:
+        for url in urls:
+            r = requests.get(url, headers=HEADERS, timeout=12)
+            soup = BeautifulSoup(r.text, "lxml")
+            lines = [x.strip() for x in soup.get_text("\n").splitlines() if 18 <= len(x.strip()) <= 180]
+            for line in lines:
+                if any(skip in line for skip in ["利用規約", "ログイン", "検索", "投稿コメント", "Yahoo"]):
+                    continue
+                texts.append(line)
+                if len(texts) >= 8:
+                    break
+            if len(texts) >= 8:
+                break
+    except Exception:
+        return ""
+    return summarize_topic("bbs", texts)
+
+def fetch_kabutan_topics_jp(code):
+    texts = []
+    urls = [
+        f"https://s.kabutan.jp/stocks/{code}/news/",
+        f"https://kabutan.jp/stock/news?code={code}",
+    ]
+    try:
+        for url in urls:
+            r = requests.get(url, headers=HEADERS, timeout=12)
+            soup = BeautifulSoup(r.text, "lxml")
+            for tag in soup.find_all(["h2", "h3", "a", "li"]):
+                line = tag.get_text(" ", strip=True)
+                if 10 <= len(line) <= 120 and any(k in line for k in ["決算", "材料", "開示", "上方", "下方", "増配", "自社株", "急騰", "株探"]):
+                    texts.append(line)
+                if len(texts) >= 6:
+                    break
+            if len(texts) >= 3:
+                break
+    except Exception:
+        return ""
+    return summarize_topic("kabutan", texts)
+
+def fetch_google_news_topics(query):
+    texts = []
+    url = f"https://news.google.com/rss/search?q={quote(query)}&hl=ja&gl=JP&ceid=JP:ja"
+    try:
+        r = requests.get(url, headers=HEADERS, timeout=12)
+        soup = BeautifulSoup(r.text, "xml")
+        for item in soup.find_all("item")[:5]:
+            title = item.find("title")
+            if title:
+                texts.append(title.get_text(" ", strip=True))
+    except Exception:
+        return ""
+    return summarize_topic("news", texts)
+
+def fallback_attention_topics(stock, market, day_index):
+    topics = []
+    if market == "jp" and YAHOO_BBS_RANKS.get(stock.get("code")):
+        topics.append(f"掲示板投稿数ランキング{YAHOO_BBS_RANKS[stock['code']]}位で、個人投資家の関心が集まっています。")
+    if stock.get("major"):
+        topics.append("主要銘柄として、決算内容や発表後の株価反応が注目されやすい銘柄です。")
+    if stock.get("mcap_val", 0) >= (8e11 if market == "jp" else 2e11):
+        topics.append("時価総額が大きく、決算結果が同日の市場心理に影響しやすい銘柄です。")
+    if day_index <= 1:
+        topics.append("発表日が近く、決算前後の短期的な確認需要が高まりやすいタイミングです。")
+    return topics[:3] or ["決算日程と時価総額から、今週の確認対象になりやすい銘柄です。"]
+
+def score_attention_py(stock, market, day_index):
+    raw = 0
+    if market == "jp" and YAHOO_BBS_RANKS.get(stock.get("code")):
+        raw += (110 - YAHOO_BBS_RANKS[stock["code"]]) * 6
+    if stock.get("major"):
+        raw += 80 if market == "jp" else 75
+    raw += min(80 if market == "jp" else 75, math.log10(stock.get("mcap_val") or 1) * 5)
+    raw += max(0, 6 - day_index) * (8 if market == "jp" else 6)
+    return max(1, min(100, round(raw / (8 if market == "jp" else 2))))
+
+def collect_attention_candidates(all_events):
+    base = TODAY
+    monday = base - timedelta(days=base.weekday())
+    friday = monday + timedelta(days=4)
+    start = max(base, monday)
+    windows = [
+        (base + timedelta(days=1), base + timedelta(days=1), 5),
+        (start, friday, 10),
+        (monday + timedelta(days=7), monday + timedelta(days=11), 10),
+    ]
+    selected = {}
+    for market in ["jp", "us"]:
+        for from_date, to_date, limit in windows:
+            picks = []
+            cur = from_date
+            i = 0
+            while cur <= to_date:
+                ev = all_events.get(cur, {})
+                for stock in ev.get(market, []):
+                    if market == "jp":
+                        if not YAHOO_BBS_RANKS.get(stock.get("code")) and not stock.get("major") and stock.get("mcap_val", 0) < 8e11:
+                            continue
+                        ident = stock["code"]
+                    else:
+                        if not stock.get("major") and stock.get("mcap_val", 0) < 2e11:
+                            continue
+                        ident = stock["ticker"]
+                    picks.append((score_attention_py(stock, market, i), cur, i, stock, ident))
+                cur += timedelta(days=1)
+                i += 1
+            for _, _, day_index, stock, ident in sorted(picks, key=lambda x: (x[0], x[1], x[4]), reverse=True)[:limit]:
+                selected[(market, ident)] = (stock, day_index)
+    return selected
+
+def build_attention_topics(all_events):
+    topics = {}
+    candidates = collect_attention_candidates(all_events)
+    for (market, ident), (stock, day_index) in candidates.items():
+        gathered = []
+        if market == "jp":
+            bbs = fetch_yahoo_bbs_topics(ident)
+            kabutan = fetch_kabutan_topics_jp(ident)
+            news = fetch_google_news_topics(f"{stock.get('name','')} {ident} 株")
+            gathered = [x for x in [bbs, kabutan, news] if x]
+        else:
+            news = fetch_google_news_topics(f"{stock.get('ticker','')} {stock.get('name','')} earnings stock")
+            gathered = [x for x in [news] if x]
+        if len(gathered) < 2:
+            gathered += fallback_attention_topics(stock, market, day_index)
+        topics[(market, ident)] = gathered[:3]
+        time.sleep(0.15)
+    return topics
 
 # ─────────────────────────────────────────────
 # HTML生成
@@ -402,10 +572,11 @@ def build_files(all_events):
         data[key] = {
             "jp": [{"code":s["code"],"name":s["name"],"kind":s["kind"],
                     "time":s["time"],"mcap":s["mcap_raw"],"mv":s["mcap_val"],
-                    "major":s["major"],"buzz":YAHOO_BBS_RANKS.get(s["code"])} for s in ev.get("jp",[])],
+                    "major":s["major"],"buzz":YAHOO_BBS_RANKS.get(s["code"]),
+                    "attention_topics":ATTENTION_TOPICS.get(("jp",s["code"]),[])} for s in ev.get("jp",[])],
             "us": [{"ticker":s["ticker"],"name":s["name"],"ct":s["call_time"],
                     "eps":s["eps_est"],"mcap":s["mcap_raw"],"mv":s["mcap_val"],
-                    "major":s["major"]} for s in ev.get("us",[])],
+                    "major":s["major"],"attention_topics":ATTENTION_TOPICS.get(("us",s["ticker"]),[])} for s in ev.get("us",[])],
             "events": [{"country":s["country"],"country_name":s["country_name"],
                         "flag":s["flag"],"name":s["name"],"time":s["time"],
                         "importance":s["importance"],"commentary":s.get("commentary","")} for s in ev.get("events",[])],
@@ -513,6 +684,8 @@ header h1 span{color:#f97316}
 .att-code{font-size:.68rem;color:#9ca3af;margin-left:4px}
 .att-meta,.att-reason{font-size:.72rem;color:#6b7280;line-height:1.45}
 .att-reason{color:#374151}
+.att-why{font-size:.72rem;color:#4b5563;line-height:1.5;background:#f9fafb;border-radius:8px;padding:6px 8px;margin-top:2px}
+.att-why ul{margin:0;padding-left:1.1em}.att-why li{margin:2px 0}
 .watch-share{margin-top:10px;font-size:.72rem;color:#6b7280}
 .mini-btn{border:1.5px solid #e5e7eb;background:#fff;border-radius:8px;padding:5px 9px;font-size:.72rem;font-weight:800;color:#6b7280;cursor:pointer}
 .mini-btn:hover{border-color:#f97316;color:#f97316}
@@ -823,6 +996,7 @@ function sortTimeVal(t){if(!t)return 9999;const m=String(t).match(/(\d{1,2}):(\d
 function stockTime(m,s){return m==='jp'?(s.time||'—'):(TL[s.ct]||s.ct||'—');}
 function stockCode(m,s){return m==='jp'?s.code:s.ticker;}
 function stockName(m,s){return m==='jp'?s.name:(JP_US[s.ticker]||s.name||s.ticker);}
+function escHtml(s){return String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));}
 function dayItems(ds){
   const ev=DATA[ds]||{};
   const jp=[...(ev.jp||[])].sort((a,b)=>(b.mv||0)-(a.mv||0)).slice(0,6).map(s=>({type:'stock',market:'jp',id:s.code,time:stockTime('jp',s),label:s.name,meta:`${s.code} · ${s.mcap||''}`,major:s.major}));
@@ -1091,22 +1265,40 @@ function buildMarketDashboard(){
   function scoreJP(s, dayIndex){
     const buzz=s.buzz||0;
     const reasons=[];
+    const why=[];
     let raw=0;
-    if(buzz){raw+=(110-buzz)*6; reasons.push(`Yahoo掲示板${buzz}位`);}
-    if(s.major){raw+=80; reasons.push('主要銘柄');}
+    if(buzz){
+      raw+=(110-buzz)*6;
+      reasons.push(`Yahoo掲示板${buzz}位`);
+      why.push(`Yahoo掲示板の投稿数ランキングで上位に入り、個人投資家の関心が高まっています。`);
+    }
+    if(s.major){
+      raw+=80;
+      reasons.push('主要銘柄');
+      why.push(`主要銘柄として決算前後の値動きやニュース注目度が高くなりやすい銘柄です。`);
+    }
     raw+=Math.min(80,Math.log10(Number(s.mv)||1)*5);
+    if(Number(s.mv)>=8e11) why.push(`時価総額が大きく、同日の決算銘柄の中でも市場への影響が目立ちやすいです。`);
     raw+=Math.max(0,6-dayIndex)*8;
     const score=Math.max(1,Math.min(100,Math.round(raw/8)));
-    return {score,reasons:reasons.join(' · ')||'時価総額上位'};
+    if(dayIndex<=1) why.push(`発表日が近く、短期の確認需要が集まりやすいタイミングです。`);
+    return {score,reasons:reasons.join(' · ')||'時価総額上位',topics:why.slice(0,2).length?why.slice(0,2):['時価総額と発表日程から、今週の確認対象になりやすい銘柄です。']};
   }
   function scoreUS(s, dayIndex){
     const reasons=[];
+    const why=[];
     let raw=0;
-    if(s.major){raw+=75; reasons.push('主要米国株');}
+    if(s.major){
+      raw+=75;
+      reasons.push('主要米国株');
+      why.push(`主要米国株として決算内容が指数や関連銘柄にも意識されやすい銘柄です。`);
+    }
     raw+=Math.min(75,Math.log10(Number(s.mv)||1)*5);
+    if(Number(s.mv)>=2e11) why.push(`時価総額が大きく、決算結果が市場全体のムードに影響しやすいです。`);
     raw+=Math.max(0,6-dayIndex)*6;
     const score=Math.max(1,Math.min(100,Math.round(raw/2)));
-    return {score,reasons:reasons.join(' · ')||'時価総額上位'};
+    if(dayIndex<=1) why.push(`発表日が近く、決算前のポジション調整や確認需要が出やすいタイミングです。`);
+    return {score,reasons:reasons.join(' · ')||'時価総額上位',topics:why.slice(0,2).length?why.slice(0,2):['時価総額と発表日程から、今週の確認対象になりやすい銘柄です。']};
   }
   function collectPicks(fromDate, toDate, marketFilter){
     const picks=[];
@@ -1119,14 +1311,14 @@ function buildMarketDashboard(){
         (ev.jp||[]).forEach(s=>{
           if(!s.buzz&&!s.major&&Number(s.mv)<8e11) return;
           const scored=scoreJP(s,i);
-          picks.push({market:'jp',id:s.code,name:s.name,code:s.code,ds:key,time:s.time||'—',score:scored.score,reason:scored.reasons,mcap:s.mcap||''});
+          picks.push({market:'jp',id:s.code,name:s.name,code:s.code,ds:key,time:s.time||'—',score:scored.score,reason:scored.reasons,topics:(s.attention_topics&&s.attention_topics.length?s.attention_topics:scored.topics),mcap:s.mcap||''});
         });
       }
       if(marketFilter==='us'||marketFilter==='all'){
         (ev.us||[]).forEach(s=>{
           if(!s.major&&Number(s.mv)<2e11) return;
           const scored=scoreUS(s,i);
-          picks.push({market:'us',id:s.ticker,name:s.ticker,code:s.ticker,ds:key,time:TL[s.ct]||s.ct||'—',score:scored.score,reason:scored.reasons,mcap:s.mcap||''});
+          picks.push({market:'us',id:s.ticker,name:s.ticker,code:s.ticker,ds:key,time:TL[s.ct]||s.ct||'—',score:scored.score,reason:scored.reasons,topics:(s.attention_topics&&s.attention_topics.length?s.attention_topics:scored.topics),mcap:s.mcap||''});
         });
       }
     }
@@ -1144,6 +1336,7 @@ function buildMarketDashboard(){
       <div class="att-name">${x.market==='jp'?'🇯🇵':'🇺🇸'} ${x.name}<span class="att-code">${x.code}</span></div>
       <div class="att-meta">${dlabel(x.ds)} · ${x.time} · ${x.mcap}</div>
       <div class="att-reason">${x.reason}</div>
+      <div class="att-why"><ul>${(x.topics||[]).slice(0,3).map(t=>`<li>${escHtml(t)}</li>`).join('')}</ul></div>
     </div>`).join(''):`<div class="events-empty">${emptyLabel(periodLabel,marketFilter)}</div>`;
   }
   const tomorrow=new Date(base); tomorrow.setDate(base.getDate()+1);
@@ -1527,9 +1720,13 @@ def main():
     print(f"  {imp_total}件")
 
     print("\n【注目度】Yahoo掲示板投稿数ランキングから取得中...")
-    global YAHOO_BBS_RANKS
+    global YAHOO_BBS_RANKS, ATTENTION_TOPICS
     YAHOO_BBS_RANKS = fetch_yahoo_bbs_ranking()
     print(f"  {len(YAHOO_BBS_RANKS)}銘柄")
+
+    print("\n【注目理由】掲示板・株探・ニュースから取得中...")
+    ATTENTION_TOPICS = build_attention_topics(all_events)
+    print(f"  {len(ATTENTION_TOPICS)}銘柄")
 
     print("\nHTML生成中...")
     html, data_js = build_files(all_events)
