@@ -337,6 +337,45 @@ TOPIC_KEYWORDS = [
     "提携", "受注", "新製品", "TOB", "M&A", "配当",
 ]
 
+TOPIC_MEANINGS = {
+    "決算": "決算内容と発表後の株価反応",
+    "業績": "業績見通し",
+    "上方修正": "業績予想の上方修正",
+    "下方修正": "業績予想の下方修正",
+    "増配": "増配や株主還元",
+    "減配": "減配リスク",
+    "自社株買い": "自社株買い",
+    "株主還元": "株主還元方針",
+    "PTS": "PTSでの反応",
+    "急騰": "短期急騰後の値動き",
+    "急落": "急落後の戻りや下値確認",
+    "利確": "利益確定売り",
+    "信用": "信用需給",
+    "空売り": "空売り動向",
+    "需給": "短期需給",
+    "レーティング": "証券会社の評価",
+    "目標株価": "目標株価の見直し",
+    "AI": "AI関連材料",
+    "半導体": "半導体関連需要",
+    "データセンター": "データセンター需要",
+    "為替": "為替感応度",
+    "円安": "円安メリット",
+    "円高": "円高リスク",
+    "関税": "関税影響",
+    "金利": "金利動向",
+    "提携": "提携・協業材料",
+    "受注": "受注材料",
+    "新製品": "新製品材料",
+    "TOB": "TOB思惑",
+    "M&A": "M&A材料",
+    "配当": "配当方針",
+}
+
+TOPIC_NOISE_WORDS = [
+    "利用規約", "ログイン", "検索", "投稿コメント", "Yahoo", "パソコン版", "スマートフォン版",
+    "掲示板ページをリニューアル", "見た目や機能", "JavaScript", "Cookie", "アプリ", "ヘルプ",
+]
+
 def fetch_yahoo_bbs_ranking():
     """Yahoo!ファイナンスの日本株掲示板投稿数ランキングを {code: rank} で返す"""
     global YAHOO_BBS_UPDATED
@@ -366,32 +405,69 @@ def fetch_yahoo_bbs_ranking():
         print(f"  Yahoo掲示板ランキング取得失敗: {e}")
     return ranks
 
+def is_topic_noise(text):
+    return any(skip in (text or "") for skip in TOPIC_NOISE_WORDS)
+
 def clean_topic_text(text):
     text = re.sub(r"\s+", " ", text or "").strip()
     text = re.sub(r"https?://\S+", "", text)
     return text[:160]
 
-def summarize_topic(source, texts):
-    joined = " ".join(clean_topic_text(t) for t in texts if t)
-    if not joined:
-        return ""
+def topic_hits(text):
     hits = []
     for kw in TOPIC_KEYWORDS:
-        n = joined.count(kw)
+        n = text.count(kw)
         if n:
             hits.append((n, kw))
-    hits = [kw for _, kw in sorted(hits, reverse=True)[:3]]
-    if source == "bbs":
+    return [kw for _, kw in sorted(hits, reverse=True)[:4]]
+
+def topic_phrase(hits):
+    return "、".join(TOPIC_MEANINGS.get(k, k) for k in hits[:3])
+
+def representative_line(texts):
+    cleaned = [clean_topic_text(t) for t in texts if clean_topic_text(t) and not is_topic_noise(t)]
+    scored = []
+    for line in cleaned:
+        hits = topic_hits(line)
+        score = len(hits) * 5 + min(len(line), 80) / 80
         if hits:
-            return f"掲示板では{ '・'.join(hits) }を巡る投稿が目立ちます。"
-        return "掲示板では決算前後の株価反応や短期需給への投稿が出ています。"
+            score += 8
+        scored.append((score, line))
+    if not scored:
+        return ""
+    line = sorted(scored, reverse=True)[0][1]
+    line = re.sub(r"\s*[-|｜].*$", "", line)
+    line = re.sub(r"^(株探ニュース|みんかぶ|Yahoo!ファイナンス|Google ニュース)\s*", "", line)
+    return line[:42]
+
+def summarize_topic(source, texts):
+    texts = [t for t in texts if t and not is_topic_noise(t)]
+    joined = " ".join(clean_topic_text(t) for t in texts)
+    if not joined:
+        return ""
+    hits = topic_hits(joined)
+    phrase = topic_phrase(hits)
+    sample = representative_line(texts)
+    if source == "bbs":
+        m = re.search(r"強く買いたい\s*([0-9.]+)%.*?買いたい\s*([0-9.]+)%.*?様子見\s*([0-9.]+)%", joined)
+        if m:
+            return f"掲示板の投稿者評価は強気比率が高く、強く買いたい{m.group(1)}%・買いたい{m.group(2)}%・様子見{m.group(3)}%です。"
+        if hits:
+            return f"掲示板では{phrase}への反応が多く、短期の売買目線で見られています。"
+        if sample:
+            return f"掲示板では直近コメントで「{sample}」周辺の話題が出ています。"
+        return "掲示板では決算後の値動き、PTS反応、利確や信用需給への投稿が中心です。"
     if source == "kabutan":
         if hits:
-            return f"株探では{ '・'.join(hits) }関連の材料や決算見出しが確認できます。"
-        return "株探では個別材料や決算速報の見出しが確認できます。"
+            return f"株探では{phrase}が材料視され、決算速報や個別材料として確認されています。"
+        if sample:
+            return f"株探では「{sample}」という個別材料・決算関連の見出しが出ています。"
+        return "株探では個別材料や決算速報の見出しが出ており、材料確認の対象になっています。"
     if hits:
-        return f"ニュースでは{ '・'.join(hits) }関連の話題が出ています。"
-    return "ニュースでは直近材料への関心が見られます。"
+        return f"ニュースでは{phrase}が取り上げられ、決算前後の評価材料になっています。"
+    if sample:
+        return f"ニュースでは「{sample}」に関連する報道が確認されています。"
+    return "ニュースでは直近材料や決算前後の株価反応への関心が見られます。"
 
 def fetch_yahoo_bbs_topics(code):
     texts = []
@@ -405,7 +481,7 @@ def fetch_yahoo_bbs_topics(code):
             soup = BeautifulSoup(r.text, "lxml")
             lines = [x.strip() for x in soup.get_text("\n").splitlines() if 18 <= len(x.strip()) <= 180]
             for line in lines:
-                if any(skip in line for skip in ["利用規約", "ログイン", "検索", "投稿コメント", "Yahoo"]):
+                if is_topic_noise(line):
                     continue
                 texts.append(line)
                 if len(texts) >= 8:
