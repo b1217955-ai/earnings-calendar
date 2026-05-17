@@ -1,0 +1,38 @@
+name: PTS値上がりランキング保存
+
+on:
+  schedule:
+    - cron: '30 21 * * *'  # 毎日 6:30 JST（UTC 21:30 前日）
+  workflow_dispatch:        # GitHubから手動実行も可能
+
+jobs:
+  pts:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: リポジトリを取得
+        uses: actions/checkout@v4
+
+      - name: Python セットアップ
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: 日本語フォントをインストール
+        run: sudo apt-get install -y fonts-noto-cjk
+
+      - name: 依存パッケージをインストール
+        run: pip install requests beautifulsoup4 Pillow pytz
+
+      - name: PTSデータ取得・保存
+        run: python3 pts/pts_saver.py
+
+      - name: 変更をコミット・プッシュ
+        run: |
+          git config --global user.email "actions@github.com"
+          git config --global user.name "GitHub Actions"
+          git add pts/output/
+          git diff --staged --quiet || git commit -m "PTS: $(date +'%Y-%m-%d' -d 'yesterday')"
+          git push
