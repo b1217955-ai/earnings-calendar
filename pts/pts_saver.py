@@ -67,12 +67,14 @@ def fetch_pts_ranking(top_n: int = 10) -> list:
 
 def save_text(ranking: list, date_str: str, fetch_time: str, out_path: str) -> None:
     lines = [
-        f"PTS値上がりランキング（{date_str} 夜）",
+        f"🚀 PTS値上がりランキング（{date_str} 夜）",
         "=" * 44,
     ]
+    icons = ["🏆", "🥈", "🥉"]
     for i, r in enumerate(ranking, 1):
+        icon = icons[i - 1] if i <= 3 else "🔥"
         lines.append(
-            f"{i:2}位  {r['name']:<16} ({r['code']})  {r['pct']:>8}  {r['price']}"
+            f"{icon} {i:2}位  {r['name']:<16} ({r['code']})  {r['pct']:>8}  {r['price']}"
         )
     lines += ["", f"取得時刻: {fetch_time}"]
     with open(out_path, "w", encoding="utf-8") as f:
@@ -80,68 +82,88 @@ def save_text(ranking: list, date_str: str, fetch_time: str, out_path: str) -> N
 
 
 def save_image(ranking: list, date_str: str, out_path: str) -> None:
-    W = 640
-    ROW_H = 64
-    HEADER_H = 120
-    IMG_H = HEADER_H + ROW_H * len(ranking) + 40
-    BG_TOP = (8, 28, 72)
-    BG_BOT = (12, 40, 100)
-    ACCENT = (30, 100, 200)
+    W = 720
+    ROW_H = 68
+    HEADER_H = 132
+    FOOTER_H = 44
+    IMG_H = HEADER_H + ROW_H * len(ranking) + FOOTER_H
     WHITE = (255, 255, 255)
-    LIGHT = (180, 200, 230)
-    RED = (255, 60, 80)
-    ROW_ODD = (14, 35, 85)
-    ROW_EVN = (10, 25, 65)
-    GOLD = (255, 200, 50)
+    PAPER = (255, 252, 248)
+    INK = (28, 33, 40)
+    MUTED = (98, 108, 122)
+    LINE = (232, 236, 242)
+    RED = (220, 38, 38)
+    RED_SOFT = (255, 238, 238)
+    BLUE = (37, 99, 235)
+    BLUE_SOFT = (235, 243, 255)
+    GOLD = (246, 185, 47)
+    SILVER = (158, 169, 184)
+    BRONZE = (196, 126, 72)
+    ROW_ODD = (255, 255, 255)
+    ROW_EVN = (248, 250, 252)
 
-    img = Image.new("RGB", (W, IMG_H), BG_TOP)
+    img = Image.new("RGB", (W, IMG_H), PAPER)
     draw = ImageDraw.Draw(img)
 
-    for y in range(IMG_H):
-        t = y / IMG_H
-        r = int(BG_TOP[0] + (BG_BOT[0] - BG_TOP[0]) * t)
-        g = int(BG_TOP[1] + (BG_BOT[1] - BG_TOP[1]) * t)
-        b = int(BG_TOP[2] + (BG_BOT[2] - BG_TOP[2]) * t)
-        draw.line([(0, y), (W, y)], fill=(r, g, b))
-
     try:
-        font_title = ImageFont.truetype(FONT_BOLD, 32)
+        font_title = ImageFont.truetype(FONT_BOLD, 34)
         font_date  = ImageFont.truetype(FONT_REG,  18)
-        font_name  = ImageFont.truetype(FONT_REG,  18)
-        font_code  = ImageFont.truetype(FONT_REG,  13)
-        font_pct   = ImageFont.truetype(FONT_BOLD, 22)
-        font_rank  = ImageFont.truetype(FONT_BOLD, 20)
+        font_name  = ImageFont.truetype(FONT_BOLD, 20)
+        font_code  = ImageFont.truetype(FONT_REG,  14)
+        font_pct   = ImageFont.truetype(FONT_BOLD, 24)
+        font_price = ImageFont.truetype(FONT_BOLD, 16)
+        font_rank  = ImageFont.truetype(FONT_BOLD, 18)
+        font_badge = ImageFont.truetype(FONT_BOLD, 12)
     except Exception:
-        font_title = font_date = font_name = font_code = font_pct = font_rank = ImageFont.load_default()
+        font_title = font_date = font_name = font_code = font_pct = font_price = font_rank = font_badge = ImageFont.load_default()
+
+    draw.rounded_rectangle([(22, 18), (W - 22, HEADER_H - 18)], radius=18, fill=WHITE, outline=LINE, width=2)
+    draw.rounded_rectangle([(44, 38), (122, 74)], radius=18, fill=RED_SOFT)
+    draw.text((62, 47), "HOT", font=font_badge, fill=RED)
 
     title = "PTS 値上がり率ランキング"
     bbox = draw.textbbox((0, 0), title, font=font_title)
-    draw.text(((W - (bbox[2] - bbox[0])) // 2, 18), title, font=font_title, fill=WHITE)
+    draw.text(((W - (bbox[2] - bbox[0])) // 2, 32), title, font=font_title, fill=INK)
 
     dbbox = draw.textbbox((0, 0), date_str, font=font_date)
-    draw.text(((W - (dbbox[2] - dbbox[0])) // 2, 68), date_str, font=font_date, fill=LIGHT)
+    draw.text(((W - (dbbox[2] - dbbox[0])) // 2, 78), date_str + " 夜", font=font_date, fill=MUTED)
 
-    draw.rectangle([(40, 104), (W - 40, 106)], fill=ACCENT)
+    draw.rounded_rectangle([(W - 134, 38), (W - 44, 74)], radius=18, fill=BLUE_SOFT)
+    draw.text((W - 112, 47), "UP!", font=font_badge, fill=BLUE)
 
-    COL_RANK = 20
-    COL_NAME = 68
-    COL_PCT  = 420
-    COL_PRC  = 530
+    COL_RANK = 34
+    COL_NAME = 98
+    COL_PCT  = 478
+    COL_PRC  = 604
+    medals = [GOLD, SILVER, BRONZE]
 
     for i, r in enumerate(ranking):
         y = HEADER_H + i * ROW_H
-        draw.rectangle([(0, y), (W, y + ROW_H)], fill=ROW_ODD if i % 2 == 0 else ROW_EVN)
-        draw.line([(40, y + ROW_H - 1), (W - 40, y + ROW_H - 1)], fill=(30, 60, 110))
+        draw.rectangle([(22, y), (W - 22, y + ROW_H)], fill=ROW_ODD if i % 2 == 0 else ROW_EVN)
+        draw.line([(44, y + ROW_H - 1), (W - 44, y + ROW_H - 1)], fill=LINE)
         cy = y + ROW_H // 2
-        draw.text((COL_RANK, cy - 12), f"{i+1}", font=font_rank, fill=GOLD if i == 0 else (200, 210, 255))
-        name = r["name"][:9] + "…" if len(r["name"]) > 10 else r["name"]
-        draw.text((COL_NAME, cy - 14), name, font=font_name, fill=WHITE)
-        draw.text((COL_NAME, cy + 6), r["code"], font=font_code, fill=LIGHT)
-        draw.text((COL_PCT, cy - 14), r.get("pct", ""), font=font_pct, fill=RED)
-        draw.text((COL_PRC, cy - 10), r.get("price", ""), font=font_code, fill=LIGHT)
 
-    draw.rectangle([(0, IMG_H - 32), (W, IMG_H)], fill=(6, 18, 50))
-    draw.text((20, IMG_H - 24), "※出来高1,000株未満は除外  ※S高は前日終値ベース参考値", font=font_code, fill=(120, 140, 180))
+        badge_color = medals[i] if i < 3 else (255, 214, 102)
+        draw.ellipse([(COL_RANK, cy - 19), (COL_RANK + 38, cy + 19)], fill=badge_color)
+        rank_text = str(i + 1)
+        rb = draw.textbbox((0, 0), rank_text, font=font_rank)
+        draw.text((COL_RANK + 19 - (rb[2] - rb[0]) / 2, cy - 10), rank_text, font=font_rank, fill=WHITE)
+
+        name = r["name"][:9] + "…" if len(r["name"]) > 10 else r["name"]
+        draw.text((COL_NAME, cy - 18), name, font=font_name, fill=INK)
+        draw.text((COL_NAME, cy + 8), f"コード {r['code']}", font=font_code, fill=MUTED)
+
+        pct = r.get("pct", "")
+        pb = draw.textbbox((0, 0), pct, font=font_pct)
+        draw.rounded_rectangle([(COL_PCT - 12, cy - 24), (COL_PCT + (pb[2] - pb[0]) + 12, cy + 18)], radius=12, fill=RED_SOFT)
+        draw.text((COL_PCT, cy - 19), pct, font=font_pct, fill=RED)
+        draw.text((COL_PRC, cy - 9), r.get("price", ""), font=font_price, fill=INK)
+
+    draw.rectangle([(0, IMG_H - FOOTER_H), (W, IMG_H)], fill=WHITE)
+    draw.line([(22, IMG_H - FOOTER_H), (W - 22, IMG_H - FOOTER_H)], fill=LINE)
+    draw.ellipse([(34, IMG_H - 31), (50, IMG_H - 15)], fill=RED_SOFT)
+    draw.text((39, IMG_H - 30), "!", font=font_badge, fill=RED)
+    draw.text((58, IMG_H - 29), "出来高1,000株未満は除外  /  S高は前日終値ベース参考値", font=font_code, fill=MUTED)
 
     img.save(out_path)
 
