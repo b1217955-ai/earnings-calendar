@@ -10,6 +10,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 JST = pytz.timezone("Asia/Tokyo")
 HEADERS = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"}
+KABUTAN_BASE = "https://kabutan.jp"
 
 if platform.system() == "Darwin":
     FONT_BOLD = "/System/Library/Fonts/ヒラギノ角ゴシック W6.ttc"
@@ -65,6 +66,113 @@ def fetch_pts_ranking(top_n: int = 10) -> list:
         return []
 
 
+SKIP_REASON_WORDS = [
+        "ＭＡＣＤ",
+        "MACD",
+        "ゴールデンクロス",
+        "デッドクロス",
+        "ボリンジャー",
+        "均衡表",
+        "前日に動いた銘柄",
+        "ストップ高",
+        "上場来高値銘柄",
+]
+REASON_WORDS = [
+        "決算",
+        "上方修正",
+        "下方修正",
+        "最高益",
+        "増益",
+        "増配",
+        "黒字",
+        "営業利益",
+        "経常",
+        "純利益",
+        "配当",
+        "自社株",
+        "新製品",
+        "提携",
+        "受注",
+        "承認",
+        "イチオシ",
+        "サプライズ",
+]
+STRONG_REASON_WORDS = [
+    "上方修正",
+    "最高益",
+    "増益",
+    "増配",
+    "黒字",
+    "営業利益",
+    "経常",
+    "純利益",
+    "配当",
+    "自社株",
+    "提携",
+    "受注",
+    "承認",
+]
+GENERIC_REASON_WORDS = ["イチオシ", "サプライズ", "成長企業"]
+
+
+def normalize_text(text: str) -> str:
+    return re.sub(r"\s+", "", text)
+
+
+def looks_like_reason_headline(title: str) -> bool:
+    if any(word in title for word in SKIP_REASON_WORDS):
+        return False
+    return any(word in title for word in REASON_WORDS)
+
+
+def reason_score(title: str, name: str) -> int:
+    score = 0
+    norm_title = normalize_text(title)
+    norm_name = normalize_text(name)
+    if norm_name and norm_name in norm_title:
+        score += 8
+    score += sum(2 for word in STRONG_REASON_WORDS if word in title)
+    score += sum(1 for word in REASON_WORDS if word in title)
+    score -= sum(2 for word in GENERIC_REASON_WORDS if word in title)
+    return score
+
+
+def fetch_reason(code: str, name: str = "") -> dict:
+    url = f"{KABUTAN_BASE}/stock/news?code={code}"
+    try:
+        resp = requests.get(url, headers=HEADERS, timeout=15)
+        resp.encoding = "utf-8"
+        soup = BeautifulSoup(resp.text, "html.parser")
+        fallback = ""
+        candidates = []
+        for a in soup.select('a[href*="/stock/news?code="]'):
+            title = a.get_text(" ", strip=True)
+            href = a.get("href", "")
+            if not title or f"code={code}" not in href or "&b=" not in href:
+                continue
+            if not fallback:
+                fallback = title
+            if looks_like_reason_headline(title):
+                candidates.append({
+                    "title": title,
+                    "url": KABUTAN_BASE + href,
+                    "score": reason_score(title, name),
+                })
+        if candidates:
+            best = sorted(candidates, key=lambda x: x["score"], reverse=True)[0]
+            return {"title": best["title"], "url": best["url"]}
+        if fallback:
+            return {"title": fallback, "url": url}
+    except Exception as e:
+        print(f"材料候補取得失敗 ({code}): {e}", file=sys.stderr)
+    return {"title": "関連ニュース見出しを確認できませんでした", "url": url}
+
+
+def add_top_reasons(ranking: list, top_n: int = 3) -> None:
+    for item in ranking[:top_n]:
+        item["reason"] = fetch_reason(item["code"], item["name"])
+
+
 def save_text(ranking: list, date_str: str, fetch_time: str, out_path: str) -> None:
     lines = [
         f"🚀 PTS値上がりランキング（{date_str} 夜）",
@@ -76,6 +184,13 @@ def save_text(ranking: list, date_str: str, fetch_time: str, out_path: str) -> N
         lines.append(
             f"{icon} {i:2}位  {r['name']:<16} ({r['code']})  {r['pct']:>8}  {r['price']}"
         )
+    lines += ["", "📝 上位3銘柄の材料候補（株探ニュース見出しベース）"]
+    for i, r in enumerate(ranking[:3], 1):
+        reason = r.get("reason") or {}
+        title = reason.get("title", "関連ニュース見出しを確認できませんでした")
+        url = reason.get("url", f"{KABUTAN_BASE}/stock/news?code={r['code']}")
+        lines.append(f"{i}. {r['name']}（{r['code']}）: {title}")
+        lines.append(f"   参考: {url}")
     lines += ["", f"取得時刻: {fetch_time}"]
     with open(out_path, "w", encoding="utf-8") as f:
         f.write("\n".join(lines))
@@ -185,6 +300,7 @@ def main() -> None:
         sys.exit(1)
 
     print(f"{len(ranking)}件取得")
+    add_top_reasons(ranking, top_n=3)
 
     txt_path = os.path.join(SAVE_DIR, f"{file_date}.txt")
     img_path = os.path.join(SAVE_DIR, f"{file_date}.png")
