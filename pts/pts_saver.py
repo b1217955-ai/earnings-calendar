@@ -11,13 +11,14 @@ from PIL import Image, ImageDraw, ImageFont
 JST = pytz.timezone("Asia/Tokyo")
 HEADERS = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36"}
 KABUTAN_BASE = "https://kabutan.jp"
+LOCAL_ICLOUD_PTS_DIR = os.path.expanduser(
+    "~/Library/Mobile Documents/com~apple~CloudDocs/AI Codex/自動化出力/PTS"
+)
 
 if platform.system() == "Darwin":
     FONT_BOLD = "/System/Library/Fonts/ヒラギノ角ゴシック W6.ttc"
     FONT_REG  = "/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc"
-    SAVE_DIR  = os.path.expanduser(
-        "~/Library/Mobile Documents/com~apple~CloudDocs/PTS"
-    )
+    SAVE_DIR  = os.environ.get("PTS_OUTPUT_DIR", LOCAL_ICLOUD_PTS_DIR)
 else:
     FONT_BOLD = "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc"
     FONT_REG  = "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc"
