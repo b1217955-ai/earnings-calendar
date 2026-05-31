@@ -8,7 +8,7 @@
 
 import requests
 from bs4 import BeautifulSoup
-import calendar, time, os, re, math
+import calendar, time, os, re, math, json
 from datetime import datetime, timedelta
 import pytz
 from urllib.parse import quote
@@ -292,6 +292,56 @@ def fetch_important_events(start_date, end_date):
     except Exception as e:
         print(f"  SBI経済指標 取得失敗: {e}")
     return events
+
+def load_saved_important_events(start_date, end_date):
+    """前回生成した data.js から重要事項を復元する"""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data.js")
+    events = {}
+    try:
+        if not os.path.exists(path):
+            return events
+        text = open(path, encoding="utf-8").read()
+        m = re.search(r"window.DATA=(.*);$", text, re.S)
+        if not m:
+            return events
+        saved = json.loads(m.group(1))
+        for ds, day in saved.items():
+            try:
+                dt = datetime.strptime(ds, "%Y-%m-%d").date()
+            except Exception:
+                continue
+            if not (start_date <= dt <= end_date):
+                continue
+            for e in day.get("events") or []:
+                if e.get("country") in ("jp", "us") and e.get("name"):
+                    events.setdefault(dt, []).append({
+                        "country": e.get("country", ""),
+                        "country_name": e.get("country_name", ""),
+                        "flag": e.get("flag", ""),
+                        "name": e.get("name", ""),
+                        "time": e.get("time", ""),
+                        "importance": e.get("importance", 3),
+                        "commentary": e.get("commentary", ""),
+                    })
+    except Exception as e:
+        print(f"  保存済み重要事項の復元失敗: {e}")
+    return events
+
+def merge_important_events(fresh, saved):
+    """新規取得分を優先し、保存済み重要事項も残す"""
+    merged = {}
+    seen = set()
+    for source in (fresh, saved):
+        for dt, items in source.items():
+            for e in items:
+                key = (dt, e.get("time", ""), e.get("country", ""), e.get("name", ""))
+                if key in seen:
+                    continue
+                seen.add(key)
+                merged.setdefault(dt, []).append(e)
+    for items in merged.values():
+        items.sort(key=lambda x: (time_sort_value(x.get("time", "")), x.get("country", ""), x.get("name", "")))
+    return merged
 
 def economic_commentary(name, country):
     n = name or ""
@@ -1742,7 +1792,9 @@ def upload_to_github(html, data_js):
 
     ok1 = put_file("index.html", html)
     ok2 = put_file("data.js", data_js)
-    if ok1 and ok2:
+    src_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "make_calendar.py")
+    ok3 = put_file("make_calendar.py", open(src_path, encoding="utf-8").read())
+    if ok1 and ok2 and ok3:
         user  = repo.split("/")[0]
         rname = repo.split("/")[1]
         return f"https://{user}.github.io/{rname}/"
@@ -1789,7 +1841,11 @@ def main():
 
     print("\n【重要事項】SBI証券 経済指標から取得中...")
     end_date = TODAY + timedelta(days=89)
-    important_events = fetch_important_events(TODAY, end_date)
+    saved_events = load_saved_important_events(TODAY, end_date)
+    fresh_events = fetch_important_events(TODAY, end_date)
+    important_events = merge_important_events(fresh_events, saved_events)
+    if saved_events:
+        print(f"  保存済み {sum(len(v) for v in saved_events.values())}件を保持")
     imp_total = sum(len(v) for v in important_events.values())
     for date, events in important_events.items():
         all_events.setdefault(date, {"jp":[],"us":[]})["events"] = events
@@ -1803,6 +1859,11 @@ def main():
     print("\n【注目理由】掲示板・株探・ニュースから取得中...")
     ATTENTION_TOPICS = build_attention_topics(all_events)
     print(f"  {len(ATTENTION_TOPICS)}銘柄")
+
+    total = sum(len(v.get("jp",[])) + len(v.get("us",[])) for v in all_events.values())
+    if total == 0:
+        print("❌ 決算データ取得が全滅したため、保存済みファイルを上書きせず中止")
+        return
 
     print("\nHTML生成中...")
     html, data_js = build_files(all_events)
