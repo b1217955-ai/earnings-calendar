@@ -343,6 +343,37 @@ def merge_important_events(fresh, saved):
         items.sort(key=lambda x: (time_sort_value(x.get("time", "")), x.get("country", ""), x.get("name", "")))
     return merged
 
+def add_manual_market_events(events, start_date, end_date):
+    """SQ・FOMC・大型IPOなど、通常の経済指標ページに載りにくい市場イベントを追加する"""
+    manual = [
+        ("2026-06-12", "jp", "🇯🇵", "日本", "メジャーSQ（株価指数先物・オプション特別清算指数）", "9:00", "先物・オプションの清算値が決まる日。寄り付き前後は指数や大型株の需給が荒れやすいです。"),
+        ("2026-07-10", "jp", "🇯🇵", "日本", "SQ（株価指数オプション特別清算指数）", "9:00", "オプションSQ日。寄り付き前後は指数連動の売買や大型株の需給に注意です。"),
+        ("2026-06-18", "us", "🇺🇸", "米国", "FOMC政策金利・声明発表（パウエル議長会見 3:30）", "3:00", "米金融政策の最重要イベント。金利見通しや会見内容で米国株・ドル円が大きく動くことがあります。"),
+        ("2026-07-30", "us", "🇺🇸", "米国", "FOMC政策金利・声明発表（パウエル議長会見 3:30）", "3:00", "米金融政策の最重要イベント。利下げ・据え置き観測や会見内容が市場心理を左右します。"),
+        ("2026-07-01", "jp", "🇯🇵", "日本", "大型IPO上場日：ギフティグループ（590A・東証プライム）", "9:00", "東証プライムへの大型テクニカル上場。既存ギフティ株からの移行と初日の需給に注目です。"),
+    ]
+    seen = {(dt, e.get("time", ""), e.get("country", ""), e.get("name", "")) for dt, items in events.items() for e in items}
+    for ds, country, flag, country_name, name, time_txt, commentary in manual:
+        dt = datetime.strptime(ds, "%Y-%m-%d").date()
+        if not (start_date <= dt <= end_date):
+            continue
+        key = (dt, time_txt, country, name)
+        if key in seen:
+            continue
+        seen.add(key)
+        events.setdefault(dt, []).append({
+            "country": country,
+            "country_name": country_name,
+            "flag": flag,
+            "name": name,
+            "time": time_txt,
+            "importance": 3,
+            "commentary": commentary,
+        })
+    for items in events.values():
+        items.sort(key=lambda x: (time_sort_value(x.get("time", "")), x.get("country", ""), x.get("name", "")))
+    return events
+
 def economic_commentary(name, country):
     n = name or ""
     jp = country == "日本"
@@ -1844,6 +1875,7 @@ def main():
     saved_events = load_saved_important_events(TODAY, end_date)
     fresh_events = fetch_important_events(TODAY, end_date)
     important_events = merge_important_events(fresh_events, saved_events)
+    important_events = add_manual_market_events(important_events, TODAY, end_date)
     if saved_events:
         print(f"  保存済み {sum(len(v) for v in saved_events.values())}件を保持")
     imp_total = sum(len(v) for v in important_events.values())
