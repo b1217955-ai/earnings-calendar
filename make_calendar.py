@@ -343,6 +343,71 @@ def merge_important_events(fresh, saved):
         items.sort(key=lambda x: (time_sort_value(x.get("time", "")), x.get("country", ""), x.get("name", "")))
     return merged
 
+def add_fallback_important_events(events, start_date, end_date):
+    """SBIが取れない時でも、前回保存していた主要経済指標を消さないための復元データ"""
+    fallback = [
+        ("2026-06-08", "jp", "GDPデフレーター（前年比）-1Q", "8:50"),
+        ("2026-06-08", "jp", "名目GDP（前期比）-1Q", "8:50"),
+        ("2026-06-08", "jp", "国際収支[経常収支]-4月", "8:50"),
+        ("2026-06-08", "jp", "国際収支[貿易収支]-4月", "8:50"),
+        ("2026-06-08", "jp", "実質GDP（前期比年率）-1Q", "8:50"),
+        ("2026-06-08", "jp", "実質GDP（前期比）-1Q", "8:50"),
+        ("2026-06-08", "jp", "景気ウォッチャー調査[先行き判断DI]-5月", "14:00"),
+        ("2026-06-08", "jp", "景気ウォッチャー調査[現状判断DI]-5月", "14:00"),
+        ("2026-06-09", "jp", "マネーストックM2（前年比）-5月", "8:50"),
+        ("2026-06-09", "jp", "マネーストックM3（前年比）-5月", "8:50"),
+        ("2026-06-09", "us", "貿易収支-4月", "21:30"),
+        ("2026-06-09", "us", "中古住宅販売件数-5月", "23:00"),
+        ("2026-06-09", "us", "中古住宅販売件数（前月比）-5月", "23:00"),
+        ("2026-06-11", "us", "消費者物価指数[コア]（前年比）-5月", "21:30"),
+        ("2026-06-11", "us", "消費者物価指数[コア]（前月比）-5月", "21:30"),
+        ("2026-06-11", "us", "消費者物価指数（前年比）-5月", "21:30"),
+        ("2026-06-11", "us", "消費者物価指数（前月比）-5月", "21:30"),
+        ("2026-06-12", "jp", "鉱工業生産（前月比）-4月", "13:30"),
+        ("2026-06-12", "us", "生産者物価指数[コア]（前年比）-5月", "21:30"),
+        ("2026-06-12", "us", "生産者物価指数[コア]（前月比）-5月", "21:30"),
+        ("2026-06-12", "us", "生産者物価指数（前年比）-5月", "21:30"),
+        ("2026-06-12", "us", "生産者物価指数（前月比）-5月", "21:30"),
+        ("2026-06-16", "us", "小売売上高（前月比）-5月", "21:30"),
+        ("2026-06-16", "us", "小売売上高[除自動車]（前月比）-5月", "21:30"),
+        ("2026-06-17", "jp", "貿易収支-5月", "8:50"),
+        ("2026-06-17", "us", "住宅着工件数-5月", "21:30"),
+        ("2026-06-17", "us", "建設許可件数-5月", "21:30"),
+        ("2026-06-19", "jp", "全国消費者物価指数（前年比）-5月", "8:30"),
+        ("2026-06-19", "jp", "全国消費者物価指数[除生鮮食品]（前年比）-5月", "8:30"),
+        ("2026-06-25", "us", "実質GDP（前期比年率）-1Q", "21:30"),
+        ("2026-06-26", "us", "個人消費支出[コアPCEデフレーター]（前年比）-5月", "21:30"),
+        ("2026-06-26", "us", "個人消費支出[コアPCEデフレーター]（前月比）-5月", "21:30"),
+        ("2026-07-01", "jp", "日銀短観[大企業製造業業況判断]-2Q", "8:50"),
+        ("2026-07-01", "jp", "日銀短観[大企業非製造業業況判断]-2Q", "8:50"),
+        ("2026-07-01", "us", "ISM製造業景況指数-6月", "23:00"),
+        ("2026-07-02", "us", "雇用統計[非農業部門雇用者数]-6月", "21:30"),
+        ("2026-07-02", "us", "失業率-6月", "21:30"),
+        ("2026-07-07", "jp", "家計調査消費支出（前年比）-5月", "8:30"),
+        ("2026-07-08", "jp", "国際収支[経常収支]-5月", "8:50"),
+        ("2026-07-08", "jp", "景気ウォッチャー調査[現状判断DI]-6月", "14:00"),
+        ("2026-07-15", "us", "消費者物価指数（前年比）-6月", "21:30"),
+        ("2026-07-15", "us", "消費者物価指数[コア]（前年比）-6月", "21:30"),
+        ("2026-07-16", "us", "小売売上高（前月比）-6月", "21:30"),
+        ("2026-07-17", "jp", "全国消費者物価指数（前年比）-6月", "8:30"),
+        ("2026-07-30", "us", "実質GDP（前期比年率）-2Q", "21:30"),
+    ]
+    country_meta = {"jp": ("🇯🇵", "日本"), "us": ("🇺🇸", "米国")}
+    seen = {(dt, e.get("time", ""), e.get("country", ""), e.get("name", "")) for dt, items in events.items() for e in items}
+    for ds, country, name, time_txt in fallback:
+        dt = datetime.strptime(ds, "%Y-%m-%d").date()
+        if not (start_date <= dt <= end_date):
+            continue
+        key = (dt, time_txt, country, name)
+        if key in seen:
+            continue
+        seen.add(key)
+        flag, country_name = country_meta[country]
+        events.setdefault(dt, []).append({"country": country, "country_name": country_name, "flag": flag, "name": name, "time": time_txt, "importance": 3, "commentary": economic_commentary(name, country_name)})
+    for items in events.values():
+        items.sort(key=lambda x: (time_sort_value(x.get("time", "")), x.get("country", ""), x.get("name", "")))
+    return events
+
 def add_manual_market_events(events, start_date, end_date):
     """SQ・FOMC・大型IPOなど、通常の経済指標ページに載りにくい市場イベントを追加する"""
     manual = [
@@ -1875,6 +1940,7 @@ def main():
     saved_events = load_saved_important_events(TODAY, end_date)
     fresh_events = fetch_important_events(TODAY, end_date)
     important_events = merge_important_events(fresh_events, saved_events)
+    important_events = add_fallback_important_events(important_events, TODAY, end_date)
     important_events = add_manual_market_events(important_events, TODAY, end_date)
     if saved_events:
         print(f"  保存済み {sum(len(v) for v in saved_events.values())}件を保持")
