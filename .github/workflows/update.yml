@@ -3,7 +3,7 @@ name: 決算カレンダー自動更新
 on:
   schedule:
     - cron: '0 9,21 * * *'  # 毎日 18:00 / 翌6:00 JST
-  workflow_dispatch:        # GitHubから手動実行も可能
+  workflow_dispatch:
 
 jobs:
   update:
@@ -28,6 +28,20 @@ jobs:
       - name: 決算データ取得・HTML生成
         run: |
           python3 make_calendar.py --local
+          python3 - <<'PY'
+          import json, re, sys
+          s = open("data.js", encoding="utf-8").read()
+          meta = json.loads(re.search(r"window.META=(.*?);\nwindow.DATA=", s, re.S).group(1))
+          total_jp = int(meta.get("total_jp") or 0)
+          total_us = int(meta.get("total_us") or 0)
+          if total_jp <= 0:
+              print("日本株が0件のため、公開データの上書きを中止します")
+              sys.exit(1)
+          if total_us <= 0:
+              print("米国株が0件のため、公開データの上書きを中止します")
+              sys.exit(1)
+          print("検証OK:", meta)
+          PY
           cp earnings.html index.html
 
       - name: 変更をコミット・プッシュ
