@@ -255,13 +255,9 @@ footer a{color:#9ca3af;text-decoration:underline}
 .sc2.today{background:#fff7ed!important;border-color:#fbd38d!important}
 .sc2.past{opacity:.4}
 .dn2{font-size:0.68rem;color:#bbb;font-weight:700;margin-bottom:3px}
-.tg{font-size:0.72rem;line-height:1.45;display:grid;grid-template-columns:3.2em minmax(0,1fr);gap:4px;margin:2px 0 5px;align-items:start}
-.tgt{color:#666;font-weight:800;white-space:nowrap;min-width:3.2em}
-.tgn{color:#1a1a1a;min-width:0;display:flex;flex-direction:column;gap:1px}
-.tgi{display:block;overflow-wrap:anywhere;word-break:normal}
-.tgi .tgc{margin-left:3px}
-.events-cal .tg{margin-bottom:6px}
-.events-cal .tgn{gap:2px}
+.tg{font-size:0.72rem;line-height:1.6;display:flex;gap:5px}
+.tgt{color:#666;font-weight:700;white-space:nowrap;flex-shrink:0;min-width:2.8em}
+.tgn{color:#1a1a1a}
 .week-cur td.sc2{border-top:2px dashed #e53e3e!important;border-bottom:2px dashed #e53e3e!important}
 .week-cur td.sc2:first-child{border-left:2px dashed #e53e3e!important}
 .week-cur td.sc2:last-child{border-right:2px dashed #e53e3e!important}
@@ -272,7 +268,7 @@ footer a{color:#9ca3af;text-decoration:underline}
 .tg-more summary:hover{color:#555}
 .tg-more summary::-webkit-details-marker{display:none}
 .tgc{color:#bbb;font-size:0.65em;margin-left:2px}
-@media(max-width:768px){.cal-tbl th,.tgt{font-size:0.65rem}.tgn{font-size:0.65rem}.tg{grid-template-columns:3em minmax(0,1fr)}}
+@media(max-width:768px){.cal-tbl th,.tgt{font-size:0.65rem}.tgn{font-size:0.65rem}}
 </style>
 </head>
 <body>
@@ -390,7 +386,7 @@ footer a{color:#9ca3af;text-decoration:underline}
     <div class="modal-body" id="modal-body"></div>
   </div>
 </div>
-<script src="data.js?v=202606070011"></script>
+<script src="data.js?v=202606202011"></script>
 <script>
 const TL={BMO:"開場前",AMC:"閉場後",TAS:"取引中"};
 const DAYS=["月","火","水","木","金","土","日"];
@@ -544,7 +540,7 @@ function buildTableCell(dateStr,ev,market){
   }
   function renderGroups(g){
     return Object.keys(g).sort((a,b)=>!a?1:!b?-1:a.localeCompare(b)).map(t=>
-      `<div class="tg"><span class="tgt">${t||'—'}</span><span class="tgn">${g[t].map(x=>`<span class="tgi">${x}</span>`).join('')}</span></div>`
+      `<div class="tg"><span class="tgt">${t||'—'}</span><span class="tgn">${g[t].join('、')}</span></div>`
     ).join('');
   }
   let inner=`<div class="dn2">${day}</div>`;
@@ -801,7 +797,7 @@ function buildImportantEvents(){
       if(av!==bv) return av-bv;
       return (a.country||'').localeCompare(b.country||'') || (a.name||'').localeCompare(b.name||'');
     }).map(e=>
-      `<div class="tg"><span class="tgt">${e.time||'—'}</span><span class="tgn"><span class="tgi">${eventName(e,ds,(DATA[ds].events||[]).indexOf(e))}</span></span></div>`
+      `<div class="tg"><span class="tgt">${e.time||'—'}</span><span class="tgn">${eventName(e,ds,(DATA[ds].events||[]).indexOf(e))}</span></div>`
     ).join('');
   }
   function eventCell(ds, yr, mth){
